@@ -1,0 +1,15 @@
+{
+  "backend": {
+    "type": "file",
+    "path": "/data/keras-ingest"
+  },
+  "reprojectMethod": "buffered",
+  "tileSize": 256,
+  "pyramid": true,
+  "resampleMethod": "nearest-neighbor",
+  "keyIndexMethod": {
+    "type": "zorder"
+  },
+  "layoutScheme": "zoomed",
+  "crs": "EPSG:3857"
+}

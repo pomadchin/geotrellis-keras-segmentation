@@ -1,3 +1,5 @@
+package com.azavea
+
 import geotrellis.raster.Tile
 import geotrellis.spark.SpatialKey
 import geotrellis.spark.etl.Etl
