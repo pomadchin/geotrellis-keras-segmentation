@@ -1,4 +1,4 @@
-package com.azavea
+package com.azavea.server
 
 import akka.actor.Props
 import akka.io.IO
@@ -22,13 +22,15 @@ object AkkaSystem {
 object Main extends Router {
   import AkkaSystem._
 
-  val config = ConfigFactory.load()  
+  val config = ConfigFactory.load()
+  val staticPath = config.getString("geotrellis.server.static-path")
   val port = config.getInt("geotrellis.port")
   val host = config.getString("geotrellis.hostname")  
 
   val conf =
     new SparkConf()
-      .setAppName("KersService")
+      .setAppName("KerasService")
+      .setIfMissing("spark.master", "local[*]")
       .set("spark.serializer", classOf[org.apache.spark.serializer.KryoSerializer].getName)
       .set("spark.kryo.registrator", classOf[geotrellis.spark.io.kryo.KryoRegistrator].getName)  
 

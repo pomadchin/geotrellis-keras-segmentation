@@ -1,0 +1,15 @@
+{
+    "title" : "Libya Model",
+    "weightedOverlay": {
+        "numBreaks" : "10",
+        "opacity"   : "0.75",
+        "ramp"      : "yellow-to-red-heatmap",
+        "layers" : [ { "name" : "3_Ortho_IRRG",
+                       "weight" : "1",
+                       "display" : "Elevation" },
+                     { "name" : "3_Ortho_IRRG",
+                       "weight" : "1",
+                       "display" : "Elevation" }
+                   ]
+    }
+}

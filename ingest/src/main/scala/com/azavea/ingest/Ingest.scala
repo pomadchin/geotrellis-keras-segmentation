@@ -1,6 +1,6 @@
-package com.azavea
+package com.azavea.ingest
 
-import geotrellis.raster.Tile
+import geotrellis.raster.MultibandTile
 import geotrellis.spark.SpatialKey
 import geotrellis.spark.etl.Etl
 import geotrellis.spark._
@@ -13,7 +13,7 @@ object Ingest extends {
   def main(args: Array[String]): Unit = {
     implicit val sc = SparkUtils.createSparkContext("GeoTrellis ETL SinglebandIngest", new SparkConf(true))
     try {
-      Etl.ingest[ProjectedExtent, SpatialKey, Tile](args)
+      Etl.ingest[ProjectedExtent, SpatialKey, MultibandTile](args)
     } finally sc.stop()    
   }
 }

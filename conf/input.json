@@ -1,7 +1,7 @@
 [
   {
     "name": "3_Ortho_IRRG",
-    "format": "geotiff",
+    "format": "multiband-geotiff",
     "backend": {
       "type": "hadoop",
       "path": "file:///data/keras/datasets/potsdam/3_Ortho_IRRG_geotiff_1/"
@@ -10,10 +10,19 @@
   },
   {
     "name": "5_Labels_for_participants",
-    "format": "geotiff",
+    "format": "multiband-geotiff",
     "backend": {
       "type": "hadoop",
       "path": "file:///data/keras/datasets/potsdam/5_Labels_for_participants_geotiff_1/"
+    },
+    "cache": "NONE"
+  },
+  {
+    "name": "1_DSM_normalisation",
+    "format": "multiband-geotiff",
+    "backend": {
+      "type": "hadoop",
+      "path": "file:///data/keras/datasets/potsdam/1_DSM_normalisation_geotiff_1/"
     },
     "cache": "NONE"
   }

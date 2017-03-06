@@ -1,4 +1,4 @@
-package com
+package com.azavea
 
 import geotrellis.spark.LayerId
 import geotrellis.spark.io._
@@ -16,7 +16,7 @@ import org.apache.spark.SparkContext
 
 import scala.collection.JavaConversions._
 
-package object azavea {
+package object server {
   def initBackend(config: Config)(implicit cs: SparkContext): (FilteringLayerReader[LayerId], ValueReader[LayerId], AttributeStore)  = {
     config.getString("geotrellis.backend") match {
       case "s3" => {
