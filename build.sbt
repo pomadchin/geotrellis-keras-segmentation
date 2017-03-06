@@ -1,6 +1,6 @@
 lazy val commonSettings = Seq(
   organization := "com.azavea",
-  version := "0.1.0-SNAPSHOT",
+  version := "0.1.0-SNAPHOST",
   scalaVersion := "2.11.8",
   scalacOptions ++= Seq(
     "-deprecation",
@@ -49,7 +49,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root =
-  Project("root", file("."))
+  (project in file("."))
     .aggregate(server, ingest)
     .settings(commonSettings: _*)
 
