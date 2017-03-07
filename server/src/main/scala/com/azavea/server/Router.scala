@@ -15,6 +15,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import ch.megard.akka.http.cors.CorsDirectives._
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.model.{ContentType, HttpEntity, HttpResponse, MediaTypes}
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,17 +38,33 @@ trait Router extends Directives with AkkaSystem.LoggerExecutor {
   }
 
   def routes = pathPrefix("ping") {
-    get {
-      complete { "pong" }
+    cors() {
+      get {
+        complete {
+          "pong"
+        }
+      }
     }
   } ~
     pathEndOrSingleSlash {
       parameter('n.as[Int] ?) { n =>
-        getFromFile(staticPath + index(n))
+        cors() { getFromFile(staticPath + index(n)) }
       }
     } ~
     pathPrefix("") {
-      getFromDirectory(staticPath)
+      cors() { getFromDirectory(staticPath) }
+    } ~
+    pathPrefix("md") {
+      import spray.json._
+      import DefaultJsonProtocol._
+
+      pathPrefix(Segment / IntNumber) { (layerName, zoom) =>
+        complete {
+          Future {
+            getMetaData(LayerId(layerName, zoom)).toJson
+          }
+        }
+      }
     } ~
     pathPrefix("tms") {
       pathPrefix("png") {
