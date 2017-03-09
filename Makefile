@@ -55,11 +55,7 @@ create-cluster:
 --applications Name=Ganglia Name=Hadoop Name=Hue Name=Spark Name=Zeppelin \
 --instance-groups \
 'Name=Master,${MASTER_BID_PRICE}InstanceCount=1,InstanceGroupType=MASTER,InstanceType=${MASTER_INSTANCE}' \
-'Name=Workers,${WORKER_BID_PRICE}InstanceCount=${WORKER_COUNT},InstanceGroupType=CORE,InstanceType=${WORKER_INSTANCE}' \
---bootstrap-actions \
-Name=BootstrapDemo,Path=${S3_URI}/bootstrap-demo.sh,\
-Args=[--tsj=${S3_URI}/keras-server-assembly-0.1.0-SNAPSHOT.jar,--site=${S3_URI}/site.tgz,--s3u=${S3_URI},--backend=${BACKEND}] \
-| tee cluster-id.txt
+'Name=Workers,${WORKER_BID_PRICE}InstanceCount=${WORKER_COUNT},InstanceGroupType=CORE,InstanceType=${WORKER_INSTANCE}' | tee cluster-id.txt
 
 clean:
 	./sbt ingest/clean && ./sbt server/clean

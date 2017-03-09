@@ -1,3 +1,14 @@
+#!/usr/bin/env bash
+
+for entry in 4_Ortho_RGBIR/*
+do
+  SND=`echo $entry | cut -d \/ -f 2`
+  if [[ $SND == *".tif" ]]; then
+  	echo $SND
+  	gdal_translate -of GTiff 4_Ortho_RGBIR/$SND 4_Ortho_RGBIR_geotiff/$SND
+  fi
+done
+
 for entry in 3_Ortho_IRRG/*
 do
   SND=`echo $entry | cut -d \/ -f 2`

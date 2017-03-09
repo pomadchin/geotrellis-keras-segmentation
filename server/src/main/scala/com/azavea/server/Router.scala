@@ -83,7 +83,7 @@ trait Router extends Directives with AkkaSystem.LoggerExecutor {
                 Future {
                   val tileOpt =
                     try {
-                      Some(tileReader.reader[SpatialKey, MultibandTile](layerId).read(key))
+                      Some(tileReader.reader[SpatialKey, MultibandTile](layerId).read(key).subsetBands(0 to 2))
                     } catch {
                       case e: ValueNotFoundError =>
                         None
