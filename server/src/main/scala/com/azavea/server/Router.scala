@@ -148,5 +148,40 @@ trait Router extends Directives with AkkaSystem.LoggerExecutor {
           }
         }
       }
-    }
+    } ~
+    pathPrefix("layer") {
+      pathPrefix(Segment / IntNumber) { (layerName, zoom) =>
+        parameters('poly ?, 'bands ?, 'format ? "tiff", 'batchSize ? 1, 'batchIndex ? 0) { (poly, bands, format, batchSize, batchIndex) =>
+          cors() {
+            val layerId = LayerId(layerName, zoom)
+            val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
+            val polygon = poly.map(_.parseGeoJson[Polygon].reproject(LatLng, md.crs))
+            val bandsSeq = bands.toList.flatMap(_.split("\\.").toList.map(_.toInt))
+
+            complete {
+              Future {
+                val q = reader.query[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]](layerId)
+                val layer =
+                  polygon
+                    .fold(q.result)(p => q.where(Intersects(p)).result.mask(p))
+
+                val selectedLayer =
+                  if (bandsSeq.nonEmpty) layer.withContext(_.mapValues(_.subsetBands(bandsSeq)))
+                  else layer
+
+                val batch: Seq[(SpatialKey, MultibandTile)] =
+                  selectedLayer
+                    .zipWithIndex
+                    .groupBy { case (_, i) => i % batchSize }
+                    .map { _._2 }
+                    .zipWithIndex
+                    .map { case (k, v) => v -> k }.lookup(batchIndex).flatten.map(_._1)
+
+                  "ok // array of bytes (?)"
+                }
+              }
+            }
+          }
+        }
+      }
 }

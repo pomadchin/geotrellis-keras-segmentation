@@ -11,9 +11,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http"            % Version.akkaHttp,
   "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
   "ch.megard"         %% "akka-http-cors"       % "0.1.11",
-  "org.apache.spark" %% "spark-core"    % Version.spark,
+  "org.apache.spark"  %% "spark-core"   % Version.spark,
   "org.apache.hadoop" % "hadoop-client" % Version.hadoop,
-  "org.scalatest"    %% "scalatest"     % Version.scalaTest % Test
+  "org.scalatest"     %% "scalatest"    % Version.scalaTest % Test
 )
 
 Revolver.settings

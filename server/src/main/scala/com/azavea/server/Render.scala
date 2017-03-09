@@ -2,6 +2,7 @@ package com.azavea.server
 
 import geotrellis.raster._
 import geotrellis.raster.render._
+import org.apache.spark.rdd.RDD
 
 object Render {
 
@@ -14,8 +15,21 @@ object Render {
       "L0" -> 4,
       "L1" -> 5,
       "L2" -> 6,
-      "DSM" -> 7
+      "LNB0" -> 7,
+      "LNB1" -> 8,
+      "LNB2" -> 9,
+      "DSM" -> 10
     )
+
+  val rdd: RDD[String] = ???
+
+  val zz: Iterable[(String, Long)] =
+    rdd
+      .zipWithIndex
+      .groupBy { case (_, i) => i % 3 }
+      .map { _._2 }
+      .zipWithIndex
+      .map { case (k, v) => v -> k }.lookup(1).flatten
 
   val ndviColorBreaks =
     ColorMap.fromStringDouble("0.05:ffffe5aa;0.1:f7fcb9ff;0.2:d9f0a3ff;0.3:addd8eff;0.4:78c679ff;0.5:41ab5dff;0.6:238443ff;0.7:006837ff;1:004529ff").get

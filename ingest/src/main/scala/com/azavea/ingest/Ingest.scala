@@ -23,30 +23,16 @@ object Ingest extends {
       etlConf foreach { conf =>
         /* parse command line arguments */
         val etl = Etl(conf, Etl.defaultModules)
-        val Array(p1, p2, p3) = conf.input.backend.path.toString.split(",")
-
-        val input = NewHadoopGeoTiffRDD.spatialMultiband(
-          p1,
-          NewHadoopGeoTiffRDD.Options(
-            crs = conf.input.getCrs,
-            maxTileSize = conf.input.maxTileSize,
-            numPartitions = conf.input.numPartitions
+        val input = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty =>
+          NewHadoopGeoTiffRDD.spatialMultiband(
+            path,
+            NewHadoopGeoTiffRDD.Options(
+              crs = conf.input.getCrs,
+              maxTileSize = conf.input.maxTileSize,
+              numPartitions = conf.input.numPartitions
+            )
           )
-        ).union(NewHadoopGeoTiffRDD.spatialMultiband(
-          p2,
-          NewHadoopGeoTiffRDD.Options(
-            crs = conf.input.getCrs,
-            maxTileSize = conf.input.maxTileSize,
-            numPartitions = conf.input.numPartitions
-          )
-        )).union(NewHadoopGeoTiffRDD.spatialMultiband(
-          p3,
-          NewHadoopGeoTiffRDD.Options(
-            crs = conf.input.getCrs,
-            maxTileSize = conf.input.maxTileSize,
-            numPartitions = conf.input.numPartitions
-          )
-        ))
+        } reduce (_ union _)
 
         val source =
           input.map { case (p, (k, v)) =>
