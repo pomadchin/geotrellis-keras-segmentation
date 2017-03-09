@@ -5,6 +5,16 @@ var getLayer = function(url,attrib) {
   return L.tileLayer(url, { maxZoom: 19, attribution: attrib });
 };
 
+function getJsonFromUrl() {
+    var query = location.search.substr(1);
+    var result = {};
+    query.split("&").forEach(function(part) {
+        var item = part.split("=");
+        result[item[0]] = decodeURIComponent(item[1]);
+    });
+    return result;
+}
+
 var Layers = {
   stamen: {
     toner:  'http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png',

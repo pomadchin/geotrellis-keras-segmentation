@@ -69,12 +69,17 @@ trait Router extends Directives with AkkaSystem.LoggerExecutor {
     pathPrefix("tms") {
       pathPrefix("png") {
         pathPrefix(Segment / IntNumber / IntNumber / IntNumber) { (layerName, zoom, x, y) =>
-          parameters('poly ? "") { poly =>
+          parameters('poly ? "", 'bands ? "R,G,B") { (poly, bands) =>
             cors() {
               val layerId = LayerId(layerName, zoom)
               val key = SpatialKey(x, y)
               val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
               val extent = md.mapTransform(key)
+              val sb = {
+                val bandNumbers = bands.split(",").flatMap(Render.nameToBand.get).toSeq
+                if(bandNumbers.isEmpty) 0 to 2
+                else bandNumbers
+              }
               val polygon =
                 if (poly.isEmpty) None
                 else Some(poly.parseGeoJson[Polygon].reproject(LatLng, md.crs))
@@ -83,7 +88,7 @@ trait Router extends Directives with AkkaSystem.LoggerExecutor {
                 Future {
                   val tileOpt =
                     try {
-                      Some(tileReader.reader[SpatialKey, MultibandTile](layerId).read(key).subsetBands(0 to 2))
+                      Some(tileReader.reader[SpatialKey, MultibandTile](layerId).read(key).subsetBands(sb))
                     } catch {
                       case e: ValueNotFoundError =>
                         None
