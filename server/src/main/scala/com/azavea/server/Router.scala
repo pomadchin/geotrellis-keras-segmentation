@@ -158,6 +158,8 @@ trait Router extends Directives with AkkaSystem.LoggerExecutor {
             val polygon = poly.map(_.parseGeoJson[Polygon].reproject(LatLng, md.crs))
             val bandsSeq = bands.toList.flatMap(_.split("\\.").toList.map(_.toInt))
 
+            // safe as geotiffs into some directory
+
             complete {
               Future {
                 val q = reader.query[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]](layerId)

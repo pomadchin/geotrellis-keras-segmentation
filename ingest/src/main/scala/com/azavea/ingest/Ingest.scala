@@ -8,7 +8,7 @@ import geotrellis.spark.etl.config.EtlConf
 import geotrellis.spark.io._
 import geotrellis.spark.io.hadoop._
 import geotrellis.spark.util.SparkUtils
-import geotrellis.vector.Extent
+import geotrellis.vector.{Extent, ProjectedExtent}
 
 import org.apache.spark.SparkConf
 
@@ -24,9 +24,10 @@ object Ingest extends {
         /* parse command line arguments */
         val etl = Etl(conf, Etl.defaultModules)
         val input = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty =>
-          NewHadoopGeoTiffRDD.spatialMultiband(
+          HadoopGeoTiffRDD.multiband[ProjectedExtent, (String, ProjectedExtent)](
             path,
-            NewHadoopGeoTiffRDD.Options(
+            (uri, key) => uri.toString -> key,
+            HadoopGeoTiffRDD.Options(
               crs = conf.input.getCrs,
               maxTileSize = conf.input.maxTileSize,
               numPartitions = conf.input.numPartitions
@@ -35,7 +36,7 @@ object Ingest extends {
         } reduce (_ union _)
 
         val source =
-          input.map { case (p, (k, v)) =>
+          input.map { case ((p, k), v) =>
             // round extent up to 1 number after decimal point
             val Extent(xmin, ymin, xmax, ymax) = k.extent
             val List(rxmin, rymin, rxmax, rymax) = List(xmin, ymin, xmax, ymax).map(BigDecimal(_).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble)

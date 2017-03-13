@@ -53,6 +53,8 @@ lazy val root =
     .aggregate(server, ingest)
     .settings(commonSettings: _*)
 
+lazy val generators = project.settings(commonSettings: _*)
+
 lazy val server = project.settings(commonSettings: _*)
 
 lazy val ingest = project.settings(commonSettings: _*)
