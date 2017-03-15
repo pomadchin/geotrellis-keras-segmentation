@@ -1,11 +1,26 @@
 package com.azavea.keras
 
 import geotrellis.raster._
+import geotrellis.vector.Extent
+
 import spire.syntax.cfor._
 
+import scala.concurrent.forkjoin.ThreadLocalRandom
+
 object Implicits {
+  implicit class withRndExtentFunctions(that: Extent) {
+    def randomSquare(side: Double) = {
+      val newXMin = ThreadLocalRandom.current().nextDouble(that.xmin, that.xmax - side + 1)
+      val newYMin = ThreadLocalRandom.current().nextDouble(that.ymin, that.ymax - side + 1)
+      val newXMax = newXMin + side
+      val newYMax = newYMin + side
+
+      Extent(xmin = newXMin, xmax = newXMax, ymin = newYMin, ymax = newYMax)
+    }
+  }
+
   implicit class withTileSpaceFunctions(val that: Tile) extends SpaceFunctions[Tile]{
-    def rotate90(n: Int): Tile = {
+    def rotate90(n: Int = 1): Tile = {
       val (rows, cols) = that.rows -> that.cols
       if (n % 4 == 0) that
       else if (n % 2 == 0) {
@@ -76,8 +91,8 @@ object Implicits {
       } else {
         cfor(0)(_ < cols, _ + 1) { col =>
           cfor(0)(_ < rows, _ + 1) { row =>
-            tile.setDouble(cols - 1 - col, row, tile.getDouble(col, row))
-            tile.setDouble(col, row, tile.getDouble(cols - col - 1, row))
+            tile.setDouble(cols - 1 - col, row, that.getDouble(col, row))
+            tile.setDouble(col, row, that.getDouble(cols - col - 1, row))
           }
         }
       }
@@ -120,14 +135,14 @@ object Implicits {
   }
 
   implicit class withMultibandTileSpaceFunctions(val that: MultibandTile) extends SpaceFunctions[MultibandTile] {
-    def rotate90(n: Int): MultibandTile = that.mapBands { (_, tile) => tile.rotate90(n) }
+    def rotate90(n: Int = 1): MultibandTile = that.mapBands { (_, tile) => tile.rotate90(n) }
     def flipVertical: MultibandTile = that.mapBands { (_, tile) => tile.flipVertical }
     def flipHorizontal: MultibandTile = that.mapBands { (_, tile) => tile.flipHorizontal }
     def zscore: MultibandTile = that.mapBands { (_, tile) => tile.zscore }
   }
 
   implicit class withRasterSpaceFunctions[T <: CellGrid: ? => SpaceFunctions[T]](that: Raster[T]) {
-    def rotate90(n: Int): Raster[T] = Raster(that.tile.rotate90(n), that.extent)
+    def rotate90(n: Int = 1): Raster[T] = Raster(that.tile.rotate90(n), that.extent)
     def flipVertical: Raster[T] = Raster(that.tile.flipVertical, that.extent)
     def flipHorizontal: Raster[T] = Raster(that.tile.flipHorizontal, that.extent)
     def zscore: Raster[T] = Raster(that.tile.zscore, that.extent)
