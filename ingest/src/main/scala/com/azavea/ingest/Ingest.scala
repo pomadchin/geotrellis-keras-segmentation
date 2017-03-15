@@ -10,6 +10,7 @@ import geotrellis.spark.io.hadoop._
 import geotrellis.spark.util.SparkUtils
 import geotrellis.vector.{Extent, ProjectedExtent}
 
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkConf
 
 object Ingest extends {
@@ -24,9 +25,9 @@ object Ingest extends {
         /* parse command line arguments */
         val etl = Etl(conf, Etl.defaultModules)
         val input = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty =>
-          HadoopGeoTiffRDD.multiband[ProjectedExtent, (String, ProjectedExtent)](
+          HadoopGeoTiffRDD.multiband[ProjectedExtent, (Path, ProjectedExtent)](
             path,
-            (uri, key) => uri.toString -> key,
+            (path, key) => path -> key,
             HadoopGeoTiffRDD.Options(
               crs = conf.input.getCrs,
               maxTileSize = conf.input.maxTileSize,

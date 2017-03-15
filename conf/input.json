@@ -1,6 +1,6 @@
 [
   {
-    "name": "keras",
+    "name": "keras-raw",
     "format": "multiband-geotiff",
     "backend": {
       "type": "hadoop",
