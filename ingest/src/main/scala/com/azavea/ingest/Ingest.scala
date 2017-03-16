@@ -1,5 +1,6 @@
 package com.azavea.ingest
 
+import geotrellis.proj4.LatLng
 import geotrellis.raster.{ArrayTile, MultibandTile, Tile}
 import geotrellis.spark.SpatialKey
 import geotrellis.spark.etl.Etl
@@ -11,6 +12,7 @@ import geotrellis.spark.util.SparkUtils
 import geotrellis.vector._
 import geotrellis.vector.io._
 
+import spray.json.DefaultJsonProtocol._
 import spire.syntax.cfor._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkConf
@@ -51,7 +53,7 @@ object Ingest extends {
       try {
         HdfsUtils.copyPath(new Path("conf"), new Path("file:///tmp/conf"), sc.hadoopConfiguration)
       } catch {
-        case _: Throwable => println("Can't copy conf to ")
+        case _: Throwable => println("Can't copy conf to file:///tmp/conf")
       }
 
       val etlConf = EtlConf(args)
@@ -105,7 +107,11 @@ object Ingest extends {
                 } else tile }))
             }
 
-            discriminator -> (resampledIter.head._2._1, MultibandTile(
+            val key = resampledIter.filter { case (_, (k, _)) =>
+              k.crs.epsgCode != LatLng.epsgCode && k.extent != Extent(0, 0, 6000, 6000)
+            }.head._2._1
+
+            discriminator -> (key, MultibandTile(
               resampledIter.foldLeft(Vector[Tile]()) { case (acc, (_, (_, v))) =>
                 acc ++ v.bands
               }
@@ -113,25 +119,44 @@ object Ingest extends {
           }
 
         val trainingExtent =
-          keyedSource
-            .filter { case (discriminator, _) => indicesTraining.contains(discriminator) }
-            .map { case (_, (key, _)) => key.extent }
-            .reduce(_ combine _)
+          try {
+            Some(
+              keyedSource
+                .filter { case (discriminator, _) => indicesTraining.contains(discriminator) }
+                .map { case (_, (key, _)) => key.extent }
+                .reduce(_ combine _)
+            )
+          } catch {
+            case e: java.lang.UnsupportedOperationException => None
+          }
 
         val validationExtent =
-          keyedSource
-            .filter { case (discriminator, _) => indicesValidation.contains(discriminator) }
-            .map { case (_, (key, _)) => key.extent }
-            .reduce(_ combine _)
+          try {
+            Some(
+              keyedSource
+                .filter { case (discriminator, _) => indicesValidation.contains(discriminator) }
+                .map { case (_, (key, _)) => key.extent }
+                .reduce(_ combine _)
+            )
+          } catch {
+            case e: java.lang.UnsupportedOperationException => None
+          }
 
         val testExtent =
-          keyedSource
-            .filter { case (discriminator, _) => indicesTest.contains(discriminator) }
-            .map { case (_, (key, _)) => key.extent }
-            .reduce(_ combine _)
+          try {
+            Some(
+              keyedSource
+                .filter { case (discriminator, _) => indicesTest.contains(discriminator) }
+                .map { case (_, (key, _)) => key.extent }
+                .reduce(_ combine _)
+            )
+          } catch {
+            case e: java.lang.UnsupportedOperationException => None
+          }
 
         val saveAction: Etl.SaveAction[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]] =
-          (attributeStore, _, id, _) => {
+          (attributeStore, writer, id, rdd) => {
+            writer.write(id, rdd)
             if(id.zoom == 0) {
               attributeStore.write(id, "trainingExtent", trainingExtent)
               attributeStore.write(id, "validationExtent", validationExtent)

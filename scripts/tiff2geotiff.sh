@@ -33,6 +33,6 @@ do
   if [[ $SND == *"normalized_lastools.jpg" ]]; then
   	echo $SND
   	SND_TIFF=`echo $SND | sed -e 's/.jpg/.tif/g'`
-  	gdal_translate -of GTiff -a_srs '+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs ' 1_DSM_normalisation/$SND 1_DSM_normalisation_geotiff/$SND_TIFF
+  	gdal_translate -of GTiff 1_DSM_normalisation/$SND 1_DSM_normalisation_geotiff/$SND_TIFF
   fi
 done

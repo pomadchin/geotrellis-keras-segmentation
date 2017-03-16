@@ -59,7 +59,9 @@ upload-config:
 	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
     --src ./scripts/load-hdfs.sh --dest /tmp
 	aws emr ssh --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
-	--command "hadoop fs -copyFromLocal /tmp/conf conf"
+	--command "hadoop fs -rm -r -f conf"
+	aws emr ssh --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--command "hadoop fs -copyFromLocal -f /tmp/conf conf"
 
 upload-input:
 	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \

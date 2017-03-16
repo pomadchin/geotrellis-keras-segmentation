@@ -1,0 +1,39 @@
+
+[
+  {
+    "name": "4_Ortho_RGBIR",
+    "format": "multiband-geotiff",
+    "backend": {
+      "type": "hadoop",
+      "path": "4_Ortho_RGBIR_geotiff"
+    },
+    "cache": "NONE"
+  },
+  {
+    "name": "5_Labels_for_participants",
+    "format": "multiband-geotiff",
+    "backend": {
+      "type": "hadoop",
+      "path": "5_Labels_for_participants_geotiff"
+    },
+    "cache": "NONE"
+  },
+  {
+    "name": "5_Labels_for_participants_no_Boundary",
+    "format": "multiband-geotiff",
+    "backend": {
+      "type": "hadoop",
+      "path": "5_Labels_for_participants_no_Boundary_geotiff"
+    },
+    "cache": "NONE"
+  },
+  {
+    "name": "1_DSM_normalisation",
+    "format": "multiband-geotiff",
+    "backend": {
+      "type": "hadoop",
+      "path": "1_DSM_normalisation_geotiff"
+    },
+    "cache": "NONE"
+  }
+]
