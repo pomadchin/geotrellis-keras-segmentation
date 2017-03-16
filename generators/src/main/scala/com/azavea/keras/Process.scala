@@ -8,6 +8,8 @@ import geotrellis.raster.io.geotiff.GeoTiff
 import geotrellis.spark._
 import geotrellis.spark.io._
 import geotrellis.spark.io.hadoop.HdfsUtils
+import geotrellis.vector._
+import geotrellis.vector.io._
 
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
@@ -22,6 +24,7 @@ trait Process {
   def generate(opts: ProcessConf.Options): Unit =
     generate(
       opts.layerName,
+      opts.discriminator,
       opts.zoom,
       opts.tiffSize,
       opts.amount,
@@ -33,6 +36,7 @@ trait Process {
 
   def generate(
     layerName: String,
+    discriminator: String,
     zoom: Int,
     tiffSize: Int,
     amount: Int,
@@ -43,7 +47,10 @@ trait Process {
   ): Unit = {
     val layerId = LayerId(layerName, zoom)
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
-    val layerExtent = md.extent
+    val layerExtent = discriminator match {
+      case "training" | "validation" | "test" => attributeStore.read[Extent](layerId, s"${discriminator}Extent")
+      case _ => md.extent
+    }
 
     def squareSide(tiffSize: Int) = {
       val mk = md.bounds match {

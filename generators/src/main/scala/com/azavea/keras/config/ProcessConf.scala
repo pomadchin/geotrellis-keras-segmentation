@@ -4,6 +4,7 @@ object ProcessConf {
   case class Options(
     layerName: String = "keras-raw",
     catalogPath: String = "/data/keras-ingest",
+    discriminator: String = "entire",
     zoom: Int = 0,
     tiffSize: Int = 256,
     amount: Int = 5000,
@@ -22,6 +23,8 @@ object ProcessConf {
                |        layerName is a non-empty String option [default: keras-raw]
                |  --catalogPath <value>
                |        catalogPath is a non-empty String option [default: /data/keras-ingest]
+               |  --discriminator <value>
+               |        discriminator is a non-empty String option [default: entire] [options: training, validation, test, entire]
                |  --zoom <value>
                |        zoom is a non-empty Int option [default: 0]
                |  --tiffSize <value>
@@ -47,6 +50,14 @@ object ProcessConf {
         nextOption(opts.copy(layerName = value), tail)
       case "--catalogPath" :: value :: tail =>
         nextOption(opts.copy(catalogPath = value), tail)
+      case "--discriminator" :: value :: tail => value match {
+        case "training" | "validation" | "test" | "entire" => nextOption (opts.copy (catalogPath = value), tail)
+        case _ => {
+          println(s"Unknown value ${value} for option discriminator")
+          println(help)
+          sys.exit(1)
+        }
+      }
       case "--zoom" :: value :: tail =>
         nextOption(opts.copy(zoom = value.toInt), tail)
       case "--tiffSize" :: value :: tail =>

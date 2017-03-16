@@ -8,13 +8,34 @@ import geotrellis.spark.etl.config.EtlConf
 import geotrellis.spark.io._
 import geotrellis.spark.io.hadoop._
 import geotrellis.spark.util.SparkUtils
-import geotrellis.vector.{Extent, ProjectedExtent}
+import geotrellis.vector._
+import geotrellis.vector.io._
 
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
 
 object Ingest extends {
   val pattern = """(\d+)_(\d+)""".r
+
+  val indicesTraining =
+    List(
+      (2, 10), (3, 10), (3, 11), (3, 12), (4, 11), (4, 12), (5, 10),
+      (5, 12), (6, 10), (6, 11), (6, 12), (6, 8), (6, 9), (7, 11),
+      (7, 12), (7, 7), (7, 9)
+    )
+
+  val indicesValidation =
+    List(
+      (2, 11), (2, 12), (4, 10), (5, 11),
+      (6, 7), (7, 10), (7, 8)
+    )
+
+  val indicesTest =
+    List(
+      (2, 13), (2, 14), (3, 13), (3, 14), (4, 13), (4, 14), (4, 15),
+      (5, 13), (5, 14), (5, 15), (6, 13), (6, 14), (6, 15), (7, 13)
+    )
 
   def main(args: Array[String]): Unit = {
     implicit val sc = SparkUtils.createSparkContext("GeoTrellis ETL Keras MultibandIngest", new SparkConf(true))
@@ -36,7 +57,7 @@ object Ingest extends {
           )
         } reduce (_ union _)
 
-        val source =
+        val keyedSource: RDD[((Int, Int), (ProjectedExtent, MultibandTile))] =
           input.map { case ((p, k), v) =>
             // round extent up to 1 number after decimal point
             val Extent(xmin, ymin, xmax, ymax) = k.extent
@@ -45,19 +66,46 @@ object Ingest extends {
             (p, (k.copy(extent = Extent(xmin = rxmin, ymin = rymin, xmax = rxmax, ymax = rymax)), v))
           }.groupBy { case (p, _) =>  // label has a corrupted extent, group by name, fix the extent
             val Array(i, j) = (pattern findAllIn p.getName).mkString.split("_").map(_.toInt)
-            s"${i}_${j}"
-          }.map { case (_, iter) =>
-            iter.head._2._1 -> MultibandTile(
+            i -> j
+          }.map { case (discriminator, iter) =>
+            discriminator -> (iter.head._2._1, MultibandTile(
               iter.foldLeft(Vector[Tile]()) { case (acc, (_, (_, v))) =>
                 acc ++ v.bands
               }
-            )
+            ))
           }
 
-        /* perform the reprojection and mosaicing step to fit tiles to LayoutScheme specified */
+        val trainingExtent =
+          keyedSource
+            .filter { case (discriminator, _) => indicesTraining.contains(discriminator) }
+            .map { case (_, (key, _)) => key.extent }
+            .reduce(_ combine _)
+
+        val validationExtent =
+          keyedSource
+            .filter { case (discriminator, _) => indicesValidation.contains(discriminator) }
+            .map { case (_, (key, _)) => key.extent }
+            .reduce(_ combine _)
+
+        val testExtent =
+          keyedSource
+            .filter { case (discriminator, _) => indicesTest.contains(discriminator) }
+            .map { case (_, (key, _)) => key.extent }
+            .reduce(_ combine _)
+
+        val saveAction: Etl.SaveAction[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]] =
+          (attributeStore, _, id, _) => {
+            if(id.zoom == 0) {
+              attributeStore.write(id, "trainingExtent", trainingExtent)
+              attributeStore.write(id, "validationExtent", validationExtent)
+              attributeStore.write(id, "testExtent", testExtent)
+            }
+          }
+
+        val source = keyedSource.map(_._2)
+
         val (zoom, tiled) = etl.tile(source)
-        /* save and optionally pyramid the mosaiced layer */
-        etl.save[SpatialKey, MultibandTile](LayerId(etl.input.name, zoom), tiled)
+        etl.save[SpatialKey, MultibandTile](LayerId(etl.input.name, zoom), tiled, saveAction)
       }
 
     } finally sc.stop()

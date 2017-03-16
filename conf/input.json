@@ -4,7 +4,7 @@
     "format": "multiband-geotiff",
     "backend": {
       "type": "hadoop",
-      "path": "file:///data/keras/datasets/potsdam/4_Ortho_RGBIR_geotiff_1/,file:///data/keras/datasets/potsdam/5_Labels_for_participants_geotiff_1/,file:///data/keras/datasets/potsdam/5_Labels_for_participants_no_Boundary_geotiff_1/,file:///data/keras/datasets/potsdam/1_DSM_normalisation_geotiff_1/"
+      "path": "4_Ortho_RGBIR_geotiff,5_Labels_for_participants_geotiff,5_Labels_for_participants_no_Boundary_geotiff,1_DSM_normalisation_geotiff"
     },
     "cache": "NONE"
   }

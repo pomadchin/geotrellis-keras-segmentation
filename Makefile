@@ -45,9 +45,7 @@ viewer/site.tgz: $(call rwildcard, viewer/components, *.js)
 	@cd viewer && npm install && npm run build
 	tar -czf viewer/site.tgz -C viewer/dist .
 
-upload-code: ${SERVER_ASSEMBLY} ${INGEST_ASSEMBLY} scripts/emr/* viewer/site.tgz
-	@aws s3 cp viewer/site.tgz ${S3_URI}/
-	@aws s3 cp scripts/emr/bootstrap-demo.sh ${S3_URI}/
+upload-code: ${SERVER_ASSEMBLY} ${INGEST_ASSEMBLY} ${GENERATORS_ASSEMBLY} scripts/emr/*
 	@aws s3 cp conf/backend-profiles.json ${S3_URI}/
 	@aws s3 cp conf/input.json ${S3_URI}/
 	@aws s3 cp conf/output.json ${S3_URI}/output.json
@@ -149,8 +147,8 @@ run-server: ${SERVER_ASSEMBLY}
 ingest-local: ${INGEST_ASSEMBLY}
 	spark-submit \
 		--class com.azavea.ingest.Ingest --driver-memory=4G ${INGEST_ASSEMBLY} \
-		--input "file:///${PWD}/conf/input.json" \
-		--output "file://${PWD}/conf/output.json" \
+		--input "file:///${PWD}/conf/input-local.json" \
+		--output "file://${PWD}/conf/output-local.json" \
 		--backend-profiles "file://${PWD}/conf/backend-profiles.json"
 
 local-webui-py3:

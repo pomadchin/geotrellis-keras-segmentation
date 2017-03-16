@@ -1,7 +1,7 @@
 {
   "backend": {
-    "type": "hadoop",
-    "path": "keras-ingest"
+    "type": "file",
+    "path": "/data/keras-ingest"
   },
   "reprojectMethod": "buffered",
   "tileSize": 256,
@@ -10,5 +10,6 @@
   "keyIndexMethod": {
     "type": "zorder"
   },
-  "layoutScheme": "floating"
+  "layoutScheme": "zoomed",
+  "crs": "EPSG:3857"
 }
