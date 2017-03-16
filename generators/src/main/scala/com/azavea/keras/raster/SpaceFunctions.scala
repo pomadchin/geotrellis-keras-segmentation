@@ -1,4 +1,4 @@
-package com.azavea.keras
+package com.azavea.keras.raster
 
 import geotrellis.raster.CellGrid
 

@@ -4,8 +4,14 @@ include config-run.mk # Vars related to ingest step and spark parameters
 
 INGEST_ASSEMBLY := ingest/target/scala-2.11/keras-ingest-assembly-0.1.0-SNAPSHOT.jar
 SERVER_ASSEMBLY := server/target/scala-2.11/keras-server-assembly-0.1.0-SNAPSHOT.jar
+GENERATORS_ASSEMBLY := generators/target/scala-2.11/keras-generators-assembly-0.1.0-SNAPSHOT.jar
 SCRIPT_RUNNER := s3://elasticmapreduce/libs/script-runner/script-runner.jar
 STATIC := ./static
+ETL_CONF := ./conf
+DSM_DATA := /data/keras/datasets/potsdam/1_DSM_normalisation_geotiff.zip
+RGBIR_DATA := /data/keras/datasets/potsdam/4_Ortho_RGBIR_geotiff.zip
+LABEL_DATA := /data/keras/datasets/potsdam/5_Labels_for_participants_geotiff.zip
+LABEL_NB_DATA := /data/keras/datasets/potsdam/5_Labels_for_participants_no_Boundary_geotiff.zip
 
 ifeq ($(USE_SPOT),true)
 MASTER_BID_PRICE:=BidPrice=${MASTER_PRICE},
@@ -31,6 +37,10 @@ ${SERVER_ASSEMBLY}: $(call rwildcard, server/src, *.scala, *.conf, *.sbt) build.
 	./sbt server/assembly -no-colors
 	@touch -m ${SERVER_ASSEMBLY}
 
+${GENERATORS_ASSEMBLY}: $(call rwildcard, server/src, *.scala, *.conf, *.sbt) build.sbt
+	./sbt generators/assembly -no-colors
+	@touch -m ${GENERATORS_ASSEMBLY}
+
 viewer/site.tgz: $(call rwildcard, viewer/components, *.js)
 	@cd viewer && npm install && npm run build
 	tar -czf viewer/site.tgz -C viewer/dist .
@@ -43,6 +53,27 @@ upload-code: ${SERVER_ASSEMBLY} ${INGEST_ASSEMBLY} scripts/emr/* viewer/site.tgz
 	@aws s3 cp conf/output.json ${S3_URI}/output.json
 	@aws s3 cp ${SERVER_ASSEMBLY} ${S3_URI}/
 	@aws s3 cp ${INGEST_ASSEMBLY} ${S3_URI}/
+	@aws s3 cp ${GENERATORS_ASSEMBLY} ${S3_URI}/
+
+upload-config:
+	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--src ${ETL_CONF} --dest /tmp
+	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+    --src ./scripts/load-hdfs.sh --dest /tmp
+
+upload-input:
+	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--src ${DSM_DATA} --dest /mnt1/
+	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--src ${RGBIR_DATA} --dest /mnt1/
+	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--src ${LABEL_DATA} --dest /mnt1/
+	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--src ${LABEL_NB_DATA} --dest /mnt1/
+
+load-hdfs:
+	aws emr ssh --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--command /tmp/load-hdfs.sh
 
 create-cluster:
 	aws emr create-cluster --name "${NAME}" ${COLOR_TAG} \
@@ -79,6 +110,29 @@ ${S3_URI}/keras-ingest-assembly-0.1.0-SNAPHOST.jar,\
 --input,"file:///tmp/input.json",\
 --output,"file:///tmp/output.json",\
 --backend-profiles,"file:///tmp/backend-profiles.json"\
+] | cut -f2 | tee last-step-id.txt
+
+generate: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPHOST.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/data/keras-ingest",\
+--zoom,0,\
+--tiffSize,256,\
+--amount,5000,\
+--randomization,0,\
+--zscore,true,\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 run-server: ${SERVER_ASSEMBLY}

@@ -1,13 +1,14 @@
-package com.azavea.keras
+package com.azavea.keras.raster
 
 import geotrellis.raster._
 import geotrellis.vector.Extent
-
 import spire.syntax.cfor._
 
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
-object Implicits {
+object Implicits extends Implicits
+
+trait Implicits {
   implicit class withRndExtentFunctions(that: Extent) {
     def randomSquare(side: Double) = {
       val newXMin = ThreadLocalRandom.current().nextDouble(that.xmin, that.xmax - side + 1)

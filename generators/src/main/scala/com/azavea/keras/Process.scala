@@ -1,7 +1,9 @@
 package com.azavea.keras
 
+import com.azavea.keras.raster._
+import com.azavea.keras.config._
+
 import geotrellis.raster._
-import com.azavea.keras.Implicits._
 import geotrellis.raster.io.geotiff.GeoTiff
 import geotrellis.spark._
 import geotrellis.spark.io._
@@ -13,35 +15,49 @@ import org.apache.spark.SparkContext
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
 trait Process {
+  implicit val sc: SparkContext
   val attributeStore: AttributeStore
   val reader: FilteringLayerReader[LayerId]
+
+  def generate(opts: ProcessConf.Options): Unit =
+    generate(
+      opts.layerName,
+      opts.zoom,
+      opts.tiffSize,
+      opts.amount,
+      opts.randomization,
+      opts.zscore,
+      opts.path,
+      opts.bands
+    )
 
   def generate(
     layerName: String,
     zoom: Int,
-    amount: Int = 5000,
-    randomization: Boolean = true,
-    zscore: Boolean = true,
-    path: String = "/tmp",
-    bands: Option[String] = None
-  )(implicit sc: SparkContext): Unit = {
+    tiffSize: Int,
+    amount: Int,
+    randomization: Boolean,
+    zscore: Boolean,
+    path: String,
+    bands: Option[String]
+  ): Unit = {
     val layerId = LayerId(layerName, zoom)
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
     val layerExtent = md.extent
 
-    val squareSide = {
+    def squareSide(tiffSize: Int) = {
       val mk = md.bounds match {
         case kb: KeyBounds[SpatialKey] => kb.minKey
         case _ => sys.error("No correct KeyBounds for the current metadata.")
       }
 
       val extent = md.mapTransform(mk)
-      math.min(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / md.tileLayout.tileSize * 256
+      math.min(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / md.tileLayout.tileSize * tiffSize
     }
 
     val polygons =
       (1 to amount)
-        .map { _ => layerExtent.randomSquare(squareSide) }
+        .map { _ => layerExtent.randomSquare(squareSide(tiffSize)) }
         .distinct
         .map(_.toPolygon)
 
