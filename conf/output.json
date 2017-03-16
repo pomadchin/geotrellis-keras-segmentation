@@ -10,5 +10,6 @@
   "keyIndexMethod": {
     "type": "zorder"
   },
-  "layoutScheme": "floating"
+  "layoutScheme": "floating",
+  "crs": "EPSG:32633"
 }

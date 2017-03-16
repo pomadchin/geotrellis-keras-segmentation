@@ -1,6 +1,6 @@
 package com.azavea.ingest
 
-import geotrellis.raster.{MultibandTile, Tile}
+import geotrellis.raster.{ArrayTile, MultibandTile, Tile}
 import geotrellis.spark.SpatialKey
 import geotrellis.spark.etl.Etl
 import geotrellis.spark._
@@ -11,6 +11,7 @@ import geotrellis.spark.util.SparkUtils
 import geotrellis.vector._
 import geotrellis.vector.io._
 
+import spire.syntax.cfor._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
@@ -40,6 +41,19 @@ object Ingest extends {
   def main(args: Array[String]): Unit = {
     implicit val sc = SparkUtils.createSparkContext("GeoTrellis ETL Keras MultibandIngest", new SparkConf(true))
     try {
+
+      try {
+        HdfsUtils.deletePath(new Path("file:///tmp/conf"), sc.hadoopConfiguration)
+      } catch {
+        case _: Throwable => println("Can't delete file:///tmp/conf")
+      }
+
+      try {
+        HdfsUtils.copyPath(new Path("conf"), new Path("file:///tmp/conf"), sc.hadoopConfiguration)
+      } catch {
+        case _: Throwable => println("Can't copy conf to ")
+      }
+
       val etlConf = EtlConf(args)
 
       etlConf foreach { conf =>
@@ -68,8 +82,31 @@ object Ingest extends {
             val Array(i, j) = (pattern findAllIn p.getName).mkString.split("_").map(_.toInt)
             i -> j
           }.map { case (discriminator, iter) =>
-            discriminator -> (iter.head._2._1, MultibandTile(
-              iter.foldLeft(Vector[Tile]()) { case (acc, (_, (_, v))) =>
+            val resampledIter = iter.map { case (d, (k, mbtile)) =>
+              (d, (k, mbtile.mapBands { case (_, tile) =>
+                if (tile.cols != 6000 || tile.rows != 6000) {
+                  val newTile = ArrayTile.alloc(tile.cellType, 6000, 6000)
+
+                  if (!tile.cellType.isFloatingPoint) {
+                    cfor(0)(_ < tile.cols, _ + 1) { col =>
+                      cfor(0)(_ < tile.rows, _ + 1) { row =>
+                        newTile.set(col, row, tile.get(col, row))
+                      }
+                    }
+                  } else {
+                    cfor(0)(_ < tile.cols, _ + 1) { col =>
+                      cfor(0)(_ < tile.rows, _ + 1) { row =>
+                        newTile.setDouble(col, row, tile.getDouble(col, row))
+                      }
+                    }
+                  }
+
+                  newTile
+                } else tile }))
+            }
+
+            discriminator -> (resampledIter.head._2._1, MultibandTile(
+              resampledIter.foldLeft(Vector[Tile]()) { case (acc, (_, (_, v))) =>
                 acc ++ v.bands
               }
             ))

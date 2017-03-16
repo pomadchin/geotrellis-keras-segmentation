@@ -47,17 +47,15 @@ trait Process {
   ): Unit = {
     val layerId = LayerId(layerName, zoom)
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
+    val mapTransform = md.mapTransform
     val layerExtent = discriminator match {
       case "training" | "validation" | "test" => attributeStore.read[Extent](layerId, s"${discriminator}Extent")
       case _ => md.extent
     }
 
     def squareSide(tiffSize: Int) = {
-      val mk = md.bounds match {
-        case kb: KeyBounds[SpatialKey] => kb.minKey
-        case _ => sys.error("No correct KeyBounds for the current metadata.")
-      }
-
+      val GridBounds(colMin, rowMin, _, _) = mapTransform(layerExtent)
+      val mk = SpatialKey(colMin, rowMin)
       val extent = md.mapTransform(mk)
       math.min(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / md.tileLayout.tileSize * tiffSize
     }

@@ -58,6 +58,8 @@ upload-config:
 	--src ${ETL_CONF} --dest /tmp
 	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
     --src ./scripts/load-hdfs.sh --dest /tmp
+	aws emr ssh --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
+	--command "hadoop fs -copyFromLocal /tmp/conf conf"
 
 upload-input:
 	aws emr put --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem" \
@@ -104,10 +106,10 @@ spark-submit,--master,yarn-cluster,\
 --conf,spark.dynamicAllocation.enabled=true,\
 --conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
 --conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
-${S3_URI}/keras-ingest-assembly-0.1.0-SNAPHOST.jar,\
---input,"file:///tmp/input.json",\
---output,"file:///tmp/output.json",\
---backend-profiles,"file:///tmp/backend-profiles.json"\
+${S3_URI}/keras-ingest-assembly-0.1.0-SNAPSHOT.jar,\
+--input,"file:///tmp/conf/input.json",\
+--output,"file:///tmp/conf/output.json",\
+--backend-profiles,"file:///tmp/conf/backend-profiles.json"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate: ${GENERATORS_ASSEMBLY}
@@ -122,9 +124,9 @@ spark-submit,--master,yarn-cluster,\
 --conf,spark.dynamicAllocation.enabled=true,\
 --conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
 --conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
-${S3_URI}/keras-generators-assembly-0.1.0-SNAPHOST.jar,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --layerName,"keras-raw",\
---catalogPath,"/data/keras-ingest",\
+--catalogPath,"keras-ingest",\
 --zoom,0,\
 --tiffSize,256,\
 --amount,5000,\
@@ -160,3 +162,9 @@ local-webui-py2:
 server-local: ${SERVER_ASSEMBLY}
 	spark-submit --name "Keras Server ${NAME}" --master "local[4]" --driver-memory 4G --class com.azavea.server.Main \
 	${SERVER_ASSEMBLY}
+
+proxy:
+	aws emr socks --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem"
+
+ssh:
+	aws emr ssh --cluster-id ${CLUSTER_ID} --key-pair-file "${HOME}/${EC2_KEY}.pem"
