@@ -1,6 +1,5 @@
 package com.azavea.ingest
 
-import geotrellis.proj4.LatLng
 import geotrellis.raster.{ArrayTile, CellType, MultibandTile, Tile}
 import geotrellis.spark.SpatialKey
 import geotrellis.spark.etl.Etl
@@ -66,6 +65,9 @@ object Ingest extends {
       etlConf foreach { conf =>
         /* parse command line arguments */
         val etl = Etl(conf, Etl.defaultModules)
+
+        val inputPosition = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty => path }.zipWithIndex.toMap
+
         val input = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty =>
           HadoopGeoTiffRDD.multiband[ProjectedExtent, (Path, ProjectedExtent)](
             path,
@@ -88,29 +90,33 @@ object Ingest extends {
           }.groupBy { case (p, _) =>  // label has a corrupted extent, group by name, fix the extent
             val Array(i, j) = (pattern findAllIn p.getName).mkString.split("_").map(_.toInt)
             i -> j
-          }.map { case (discriminator, iter) =>
-            val resampledIter = iter.map { case (d, (k, mbtile)) =>
-              (d, (k, mbtile.mapBands { case (_, tile) =>
-                if (tile.cols != 6000 || tile.rows != 6000) {
-                  val newTile = ArrayTile.alloc(tile.cellType, 6000, 6000)
+          }.map { case (discriminator, iter: Iterable[(Path, (ProjectedExtent, MultibandTile))]) =>
+            val resampledIter =
+              iter.map { case (p, v) =>
+                ((inputPosition(p.getParent.getName), p), v) // strong bands ordering
+              }.toVector.sortBy(_._1._1).map { case ((_, p), (k, mbtile)) =>
+                (p, (k, mbtile.mapBands { case (_, tile) =>
+                  if (tile.cols != 6000 || tile.rows != 6000) {
+                    val newTile = ArrayTile.alloc(tile.cellType, 6000, 6000)
 
-                  if (!tile.cellType.isFloatingPoint) {
-                    cfor(0)(_ < tile.cols, _ + 1) { col =>
-                      cfor(0)(_ < tile.rows, _ + 1) { row =>
-                        newTile.set(col, row, tile.get(col, row))
+                    if (!tile.cellType.isFloatingPoint) {
+                      cfor(0)(_ < tile.cols, _ + 1) { col =>
+                        cfor(0)(_ < tile.rows, _ + 1) { row =>
+                          newTile.set(col, row, tile.get(col, row))
+                        }
+                      }
+                    } else {
+                      cfor(0)(_ < tile.cols, _ + 1) { col =>
+                        cfor(0)(_ < tile.rows, _ + 1) { row =>
+                          newTile.setDouble(col, row, tile.getDouble(col, row))
+                        }
                       }
                     }
-                  } else {
-                    cfor(0)(_ < tile.cols, _ + 1) { col =>
-                      cfor(0)(_ < tile.rows, _ + 1) { row =>
-                        newTile.setDouble(col, row, tile.getDouble(col, row))
-                      }
-                    }
-                  }
 
-                  newTile
-                } else tile }))
-            }
+                    newTile
+                  } else tile
+                }))
+              }
 
             val key = resampledIter.filter { case (_, (k, _)) =>
               k.extent != Extent(0, 0, 6000, 6000)

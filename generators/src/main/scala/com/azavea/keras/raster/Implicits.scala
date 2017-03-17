@@ -2,6 +2,7 @@ package com.azavea.keras.raster
 
 import geotrellis.raster._
 import geotrellis.vector.Extent
+
 import spire.syntax.cfor._
 
 import scala.concurrent.forkjoin.ThreadLocalRandom
@@ -10,15 +11,19 @@ object Implicits extends Implicits
 
 trait Implicits {
   implicit class withRndExtentFunctions(that: Extent) {
-    def randomSquare(side: Double) = {
-      val newXMin = ThreadLocalRandom.current().nextDouble(that.xmin, that.xmax - side + 1)
-      val newYMin = ThreadLocalRandom.current().nextDouble(that.ymin, that.ymax - side + 1)
-      val newXMax = newXMin + side
-      val newYMax = newYMin + side
+    def randomSquare(height: Double, width: Double) = {
+      val newXMin = {
+        if(that.xmin == that.xmax - width) that.xmin
+        else ThreadLocalRandom.current().nextDouble(that.xmin, that.xmax - width)
+      }
+      val newYMin = {
+        if(that.ymin == that.ymax - height) that.ymin
+        else ThreadLocalRandom.current().nextDouble(that.ymin, that.ymax - height)
+      }
+      val newXMax = newXMin + width
+      val newYMax = newYMin + height
 
-      val e = Extent(xmin = newXMin, xmax = newXMax, ymin = newYMin, ymax = newYMax)
-      println(s"$that.covers($e): ${that.covers(e)}")
-      e
+      Extent(xmin = newXMin, xmax = newXMax, ymin = newYMin, ymax = newYMax)
     }
   }
 

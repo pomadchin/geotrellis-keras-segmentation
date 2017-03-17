@@ -1,8 +1,9 @@
 package com.azavea.keras
 
+import java.io.File
+
 import com.azavea.keras.raster._
 import com.azavea.keras.config._
-
 import geotrellis.raster._
 import geotrellis.raster.io.geotiff.GeoTiff
 import geotrellis.spark._
@@ -10,7 +11,6 @@ import geotrellis.spark.io._
 import geotrellis.spark.io.hadoop.HdfsUtils
 import geotrellis.vector._
 import geotrellis.vector.io._
-
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import spray.json.DefaultJsonProtocol._
@@ -48,7 +48,6 @@ trait Process {
   ): Unit = {
     val layerId = LayerId(layerName, zoom)
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
-    val mapTransform = md.mapTransform
     val layerExtent = discriminator match {
       case "training" | "validation" | "test" =>
         attributeStore
@@ -57,16 +56,9 @@ trait Process {
       case _ => md.extent
     }
 
-    def squareSide(tiffSize: Int) = {
-      val GridBounds(colMin, rowMin, _, _) = mapTransform(layerExtent)
-      val mk = SpatialKey(colMin, rowMin)
-      val extent = md.mapTransform(mk)
-      math.min(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / md.tileLayout.tileSize * tiffSize
-    }
-
     val polygons =
       (1 to amount)
-        .map { _ => layerExtent.randomSquare(squareSide(tiffSize)) }
+        .map { _ => layerExtent.randomSquare(md.cellSize.height * (tiffSize - 1), md.cellSize.width * (tiffSize - 1)) }
         .distinct
         .map(_.toPolygon)
 
@@ -74,7 +66,7 @@ trait Process {
 
     val q = reader.query[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]](layerId)
     polygons.zipWithIndex.foreach { case (p, i) =>
-      val layer = q.where(Intersects(p)).result //.mask(p)
+      val layer = q.where(Intersects(p)).result
       val tileOpt = {
         val l =
           if (bandsSeq.nonEmpty) layer.withContext(_.mapValues(_.subsetBands(bandsSeq)))
@@ -87,25 +79,34 @@ trait Process {
       tileOpt foreach { t =>
         var tile = t
         if (randomization) {
-          if (Math.random() > 0.5)
-            tile = tile.flipVertical
-
-          if (Math.random() > 0.5)
-            tile = tile.flipHorizontal
-
+          if (Math.random() > 0.5) tile = tile.flipVertical
+          if (Math.random() > 0.5) tile = tile.flipHorizontal
           tile = tile.rotate90(ThreadLocalRandom.current().nextInt(0, 5))
         }
 
-        val to = s"$path/$i.tiff"
-        GeoTiff(tile.mask(p), md.crs).write(to)
-        HdfsUtils.copyPath(new Path(s"file://$layerName-$to"), new Path(s"s3://geotrellis-test/keras/${layerName}-${to.split("/").last}"), sc.hadoopConfiguration)
-        HdfsUtils.deletePath(new Path(s"file://$layerName-$to"), sc.hadoopConfiguration)
+        val res = tile.crop(p.envelope)
+        val ndvi = NDVI(res)
+
+        // how to gzip and to deliver on s3 (?)
+        val toPath = s"$path/$discriminator/${tiffSize}x${tiffSize}"
+        val to = s"$toPath/$i.tiff"
+        val tondvi = s"$toPath/ndvi/$i.tiff"
+
+        new File(toPath).mkdirs()
+        new File(s"$toPath/ndvi").mkdirs()
+
+        GeoTiff(res, md.crs).write(to)
+        GeoTiff(Raster(ndvi, res.extent), md.crs).write(tondvi)
+        HdfsUtils.copyPath(new Path(s"file://$to"), new Path(s"hdfs:///keras/${to.split("/").last}"), sc.hadoopConfiguration)
+        HdfsUtils.deletePath(new Path(s"file://$to"), sc.hadoopConfiguration)
+        HdfsUtils.copyPath(new Path(s"file://$tondvi"), new Path(s"hdfs:///keras/${tondvi.split("/").last}"), sc.hadoopConfiguration)
+        HdfsUtils.deletePath(new Path(s"file://$tondvi"), sc.hadoopConfiguration)
 
         if (zscore) {
           val to = s"$path/$i-z.tiff"
-          GeoTiff(tile.zscore, md.crs).write(to)
-          HdfsUtils.copyPath(new Path(s"file://$layerName-$to"), new Path(s"s3://geotrellis-test/keras/${layerName}-${to.split("/").last}"), sc.hadoopConfiguration)
-          HdfsUtils.deletePath(new Path(s"file://$layerName-$to"), sc.hadoopConfiguration)
+          GeoTiff(res.zscore, md.crs).write(to)
+          HdfsUtils.copyPath(new Path(s"file://$to"), new Path(s"hdfs:///geotrellis-test/keras/${to.split("/").last}"), sc.hadoopConfiguration)
+          HdfsUtils.deletePath(new Path(s"file://$to"), sc.hadoopConfiguration)
         }
       }
     }
