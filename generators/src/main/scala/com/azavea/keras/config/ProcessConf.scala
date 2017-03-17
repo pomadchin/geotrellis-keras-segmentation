@@ -3,7 +3,7 @@ package com.azavea.keras.config
 object ProcessConf {
   case class Options(
     layerName: String = "keras-raw",
-    catalogPath: String = "/data/keras-ingest",
+    catalogPath: String = "keras-ingest",
     discriminator: String = "entire",
     zoom: Int = 0,
     tiffSize: Int = 256,

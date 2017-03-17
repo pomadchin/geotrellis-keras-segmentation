@@ -16,7 +16,9 @@ trait Implicits {
       val newXMax = newXMin + side
       val newYMax = newYMin + side
 
-      Extent(xmin = newXMin, xmax = newXMax, ymin = newYMin, ymax = newYMax)
+      val e = Extent(xmin = newXMin, xmax = newXMax, ymin = newYMin, ymax = newYMax)
+      println(s"$that.covers($e): ${that.covers(e)}")
+      e
     }
   }
 

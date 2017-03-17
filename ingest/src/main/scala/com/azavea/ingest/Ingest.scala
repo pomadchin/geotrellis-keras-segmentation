@@ -113,7 +113,7 @@ object Ingest extends {
             }
 
             val key = resampledIter.filter { case (_, (k, _)) =>
-              k.crs.epsgCode != LatLng.epsgCode && k.extent != Extent(0, 0, 6000, 6000)
+              k.extent != Extent(0, 0, 6000, 6000)
             }.head._2._1
 
             val (cellType, bandsCount) =

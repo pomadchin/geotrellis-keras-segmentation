@@ -37,7 +37,7 @@ ${SERVER_ASSEMBLY}: $(call rwildcard, server/src, *.scala, *.conf, *.sbt) build.
 	./sbt server/assembly -no-colors
 	@touch -m ${SERVER_ASSEMBLY}
 
-${GENERATORS_ASSEMBLY}: $(call rwildcard, server/src, *.scala, *.conf, *.sbt) build.sbt
+${GENERATORS_ASSEMBLY}: $(call rwildcard, generators/src, *.scala, *.conf, *.sbt) build.sbt
 	./sbt generators/assembly -no-colors
 	@touch -m ${GENERATORS_ASSEMBLY}
 
@@ -128,11 +128,10 @@ spark-submit,--master,yarn-cluster,\
 --conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
 ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --layerName,"keras-raw",\
---catalogPath,"keras-ingest",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
 --zoom,0,\
---tiffSize,256,\
 --amount,5000,\
---randomization,0,\
+--randomization,true,\
 --zscore,true,\
 --path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
@@ -154,6 +153,18 @@ ingest-local: ${INGEST_ASSEMBLY}
 		--input "file:///${PWD}/conf/input-local.json" \
 		--output "file://${PWD}/conf/output-local.json" \
 		--backend-profiles "file://${PWD}/conf/backend-profiles.json"
+
+generate-local: ${GENERATORS_ASSEMBLY}
+	spark-submit \
+	    --class com.azavea.keras.Main --driver-memory=7G ${GENERATORS_ASSEMBLY} \
+		--layerName "keras-raw" \
+        --catalogPath "/data/keras-ingest/" \
+        --zoom 0 \
+        --tiffSize 6000 \
+        --amount 3 \
+        --randomization true \
+        --zscore true \
+        --path "/tmp" \
 
 local-webui-py3:
 	cd static; python -m http.server 8000

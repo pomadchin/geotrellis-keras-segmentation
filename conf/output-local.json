@@ -4,12 +4,12 @@
     "path": "/data/keras-ingest"
   },
   "reprojectMethod": "buffered",
-  "tileSize": 256,
+  "tileSize": 512,
   "pyramid": false,
   "resampleMethod": "nearest-neighbor",
   "keyIndexMethod": {
     "type": "zorder"
   },
-  "layoutScheme": "zoomed",
-  "crs": "EPSG:3857"
+  "layoutScheme": "floating",
+  "crs": "EPSG:32633"
 }

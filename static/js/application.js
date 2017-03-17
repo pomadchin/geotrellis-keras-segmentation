@@ -103,7 +103,7 @@ var weightedOverlay = (function() {
         'tms/png/{layer}/{z}/{x}/{y}?colorRamp={colorRamp}', {
       format: 'image/png',
       transparent: true,
-      layer: "keras",
+      layer: "keras-raw",
       colorRamp: colorRamp,
       attribution: 'Azavea'
     });

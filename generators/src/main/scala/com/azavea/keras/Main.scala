@@ -9,6 +9,6 @@ object Main {
   def main(args: Array[String]): Unit = {
     implicit val sc = SparkUtils.createSparkContext("GeoTrellis ETL Keras MultibandIngest", new SparkConf(true))
     val opts = ProcessConf(args)
-    try { HadoopProcess(opts.catalogPath).generate(opts) } finally sc.stop()
+    try { FileProcess(opts.catalogPath).generate(opts) } finally sc.stop()
   }
 }

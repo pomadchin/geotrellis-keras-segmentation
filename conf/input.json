@@ -4,7 +4,7 @@
     "format": "multiband-geotiff",
     "backend": {
       "type": "hadoop",
-      "path": "4_Ortho_RGBIR_geotiff,5_Labels_for_participants_geotiff,5_Labels_for_participants_no_Boundary_geotiff,1_DSM_normalisation_geotiff"
+      "path": "4_Ortho_RGBIR_geotiff,1_DSM_normalisation_geotiff,5_Labels_for_participants_geotiff,5_Labels_for_participants_no_Boundary_geotiff"
     },
     "cache": "NONE"
   }

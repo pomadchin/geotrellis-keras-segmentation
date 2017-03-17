@@ -13,6 +13,7 @@ import geotrellis.vector.io._
 
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
+import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
@@ -49,7 +50,10 @@ trait Process {
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
     val mapTransform = md.mapTransform
     val layerExtent = discriminator match {
-      case "training" | "validation" | "test" => attributeStore.read[Extent](layerId, s"${discriminator}Extent")
+      case "training" | "validation" | "test" =>
+        attributeStore
+          .read[Option[Extent]](layerId, s"${discriminator}Extent")
+          .getOrElse(throw new Exception(s"there is no ${discriminator}Extent attribute for $layerId"))
       case _ => md.extent
     }
 
@@ -70,31 +74,39 @@ trait Process {
 
     val q = reader.query[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]](layerId)
     polygons.zipWithIndex.foreach { case (p, i) =>
-      val layer = q.where(Intersects(p)).result.mask(p)
-      var tile =
-        if (bandsSeq.nonEmpty) layer.withContext(_.mapValues(_.subsetBands(bandsSeq))).stitch
-        else layer.stitch
+      val layer = q.where(Intersects(p)).result //.mask(p)
+      val tileOpt = {
+        val l =
+          if (bandsSeq.nonEmpty) layer.withContext(_.mapValues(_.subsetBands(bandsSeq)))
+          else layer
 
-      if(randomization) {
-        if (Math.random() > 0.5)
-          tile = tile.flipVertical
-
-        if (Math.random() > 0.5)
-          tile = tile.flipHorizontal
-
-        tile = tile.rotate90(ThreadLocalRandom.current().nextInt(0, 5))
+        if(l.count() > 0) Some(l.stitch)
+        else None
       }
 
-      val to = s"$path/$i.tiff"
-      GeoTiff(tile, md.crs).write(to)
-      HdfsUtils.copyPath(new Path(s"file://$to"), new Path(s"s3://geotrellis-test/keras/${to.split("/").last}"), sc.hadoopConfiguration)
-      HdfsUtils.deletePath(new Path(s"file://$to"), sc.hadoopConfiguration)
+      tileOpt foreach { t =>
+        var tile = t
+        if (randomization) {
+          if (Math.random() > 0.5)
+            tile = tile.flipVertical
 
-      if(zscore) {
-        val to = s"$path/$i-z.tiff"
-        GeoTiff(tile.zscore, md.crs).write(to)
-        HdfsUtils.copyPath(new Path(s"file://$to"), new Path(s"s3://geotrellis-test/keras/${to.split("/").last}"), sc.hadoopConfiguration)
-        HdfsUtils.deletePath(new Path(s"file://$to"), sc.hadoopConfiguration)
+          if (Math.random() > 0.5)
+            tile = tile.flipHorizontal
+
+          tile = tile.rotate90(ThreadLocalRandom.current().nextInt(0, 5))
+        }
+
+        val to = s"$path/$i.tiff"
+        GeoTiff(tile.mask(p), md.crs).write(to)
+        HdfsUtils.copyPath(new Path(s"file://$layerName-$to"), new Path(s"s3://geotrellis-test/keras/${layerName}-${to.split("/").last}"), sc.hadoopConfiguration)
+        HdfsUtils.deletePath(new Path(s"file://$layerName-$to"), sc.hadoopConfiguration)
+
+        if (zscore) {
+          val to = s"$path/$i-z.tiff"
+          GeoTiff(tile.zscore, md.crs).write(to)
+          HdfsUtils.copyPath(new Path(s"file://$layerName-$to"), new Path(s"s3://geotrellis-test/keras/${layerName}-${to.split("/").last}"), sc.hadoopConfiguration)
+          HdfsUtils.deletePath(new Path(s"file://$layerName-$to"), sc.hadoopConfiguration)
+        }
       }
     }
   }
