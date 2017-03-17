@@ -1,7 +1,7 @@
 package com.azavea.ingest
 
 import geotrellis.proj4.LatLng
-import geotrellis.raster.{ArrayTile, MultibandTile, Tile}
+import geotrellis.raster.{ArrayTile, CellType, MultibandTile, Tile}
 import geotrellis.spark.SpatialKey
 import geotrellis.spark.etl.Etl
 import geotrellis.spark._
@@ -20,6 +20,11 @@ import org.apache.spark.rdd.RDD
 
 object Ingest extends {
   val pattern = """(\d+)_(\d+)""".r
+
+  // RGBIR + DSM + LABEL + LABEL NO BOUNDARY
+  val totalBandsCount = 4 + 1 + 3 + 3
+
+  val totalInputs = 4
 
   val indicesTraining =
     List(
@@ -111,8 +116,21 @@ object Ingest extends {
               k.crs.epsgCode != LatLng.epsgCode && k.extent != Extent(0, 0, 6000, 6000)
             }.head._2._1
 
+            val (cellType, bandsCount) =
+              resampledIter
+                .map { case (_, (_, tile)) => tile.cellType -> tile.bandCount }
+                .reduce[(CellType, Int)] { case ((ct, c1), (_, c2)) => (ct, c1 + c2) }
+
+            val fixedResampledIter =
+              if(bandsCount < totalBandsCount) {
+                val lp = resampledIter.head._1
+                resampledIter ++ Iterator({
+                  lp -> (key, MultibandTile((0 until (totalBandsCount - bandsCount)) map { _ => ArrayTile.alloc(cellType, 6000, 6000) }))
+                })
+              } else resampledIter
+
             discriminator -> (key, MultibandTile(
-              resampledIter.foldLeft(Vector[Tile]()) { case (acc, (_, (_, v))) =>
+              fixedResampledIter.foldLeft(Vector[Tile]()) { case (acc, (_, (_, v))) =>
                 acc ++ v.bands
               }
             ))
@@ -127,7 +145,7 @@ object Ingest extends {
                 .reduce(_ combine _)
             )
           } catch {
-            case e: java.lang.UnsupportedOperationException => None
+            case _: java.lang.UnsupportedOperationException => None
           }
 
         val validationExtent =
@@ -139,7 +157,7 @@ object Ingest extends {
                 .reduce(_ combine _)
             )
           } catch {
-            case e: java.lang.UnsupportedOperationException => None
+            case _: java.lang.UnsupportedOperationException => None
           }
 
         val testExtent =
@@ -151,7 +169,7 @@ object Ingest extends {
                 .reduce(_ combine _)
             )
           } catch {
-            case e: java.lang.UnsupportedOperationException => None
+            case _: java.lang.UnsupportedOperationException => None
           }
 
         val saveAction: Etl.SaveAction[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]] =
