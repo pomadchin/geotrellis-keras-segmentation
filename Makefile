@@ -392,6 +392,7 @@ generate-local: ${GENERATORS_ASSEMBLY}
         --randomization true \
         --zscore true \
         --path "/tmp" \
+        --backend file
 
 local-webui-py3:
 	cd static; python -m http.server 8000

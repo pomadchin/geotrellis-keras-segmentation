@@ -12,8 +12,13 @@ object ProcessConf {
     zscore: Boolean = true,
     path: String = "/tmp",
     bands: Option[String] = None,
-    withS3upload: Boolean = false
-  )
+    withS3upload: Boolean = false,
+    backend: String = "hadoop"
+  ) {
+    def isHadoop = backend == "hadoop"
+    def isS3 = backend == "s3"
+    def isFile = backend == "file"
+  }
 
   val help = """
                |geotrellis-keras-generators
@@ -42,6 +47,8 @@ object ProcessConf {
                |        bands is a String option
                |  --withS3upload <value>
                |        withS3upload is a non-empty Boolean option [default: false]
+               |  --backend <value>
+               |        bckend is a non-empty String option [default: hadoop] [options: file, hadoop, s3]
                |  --help
                |        prints this usage text
              """.stripMargin
@@ -54,7 +61,7 @@ object ProcessConf {
       case "--catalogPath" :: value :: tail =>
         nextOption(opts.copy(catalogPath = value), tail)
       case "--discriminator" :: value :: tail => value match {
-        case "training" | "validation" | "test" | "entire" => nextOption (opts.copy (catalogPath = value), tail)
+        case "training" | "validation" | "test" | "entire" => nextOption (opts.copy (discriminator = value), tail)
         case _ => {
           println(s"Unknown value ${value} for option discriminator")
           println(help)
@@ -77,6 +84,14 @@ object ProcessConf {
         nextOption(opts.copy(bands = Some(value)), tail)
       case "--withS3upload" :: value :: tail =>
         nextOption(opts.copy(withS3upload = value.toBoolean), tail)
+      case "--backend" :: value :: tail => value match {
+        case "file" | "hadoop" | "s3" => nextOption (opts.copy (backend = value), tail)
+        case _ => {
+          println(s"Unknown value ${value} for option discriminator")
+          println(help)
+          sys.exit(1)
+        }
+      }
       case "--help" :: tail => {
         println(help)
         sys.exit(1)
