@@ -90,8 +90,8 @@ trait Process {
         val tondvi = s"$toPath/ndvi/$i.tiff"
         val tomask = s"$toPath/mask/$i.tiff"
 
-        if(new File(s"$toPath/ndvi").mkdirs()) println(s"$toPath/ndvi is created") else println(s"$toPath/ndvi is not created")
-        if(new File(s"$toPath/mask").mkdirs()) println(s"$toPath/mask is created") else println(s"$toPath/mask is not created")
+        new File(s"$toPath/ndvi").mkdirs()
+        new File(s"$toPath/mask").mkdirs()
 
         GeoTiff(tile, md.crs).write(to)
         GeoTiff(ndvi, md.crs).write(tondvi)
