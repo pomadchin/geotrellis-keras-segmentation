@@ -11,7 +11,8 @@ object ProcessConf {
     randomization: Boolean = true,
     zscore: Boolean = true,
     path: String = "/tmp",
-    bands: Option[String] = None
+    bands: Option[String] = None,
+    withS3upload: Boolean = false
   )
 
   val help = """
@@ -39,6 +40,8 @@ object ProcessConf {
                |        path is a a String option [default: /tmp]
                |  --bands <value>
                |        bands is a String option
+               |  --withS3upload <value>
+               |        withS3upload is a non-empty Boolean option [default: false]
                |  --help
                |        prints this usage text
              """.stripMargin
@@ -72,6 +75,8 @@ object ProcessConf {
         nextOption(opts.copy(path = value), tail)
       case "--bands" :: value :: tail =>
         nextOption(opts.copy(bands = Some(value)), tail)
+      case "--withS3upload" :: value :: tail =>
+        nextOption(opts.copy(withS3upload = value.toBoolean), tail)
       case "--help" :: tail => {
         println(help)
         sys.exit(1)

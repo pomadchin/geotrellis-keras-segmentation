@@ -1,20 +1,21 @@
 package com.azavea.keras
 
-import java.io.File
-
 import com.azavea.keras.raster._
 import com.azavea.keras.config._
+
 import geotrellis.raster._
 import geotrellis.raster.io.geotiff.GeoTiff
 import geotrellis.spark._
 import geotrellis.spark.io._
-import geotrellis.spark.io.hadoop.HdfsUtils
+import geotrellis.spark.io.hadoop._
 import geotrellis.vector._
 import geotrellis.vector.io._
-import org.apache.hadoop.fs.Path
+
+import org.zeroturnaround.zip.ZipUtil
 import org.apache.spark.SparkContext
 import spray.json.DefaultJsonProtocol._
 
+import java.io.File
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
 trait Process {
@@ -32,7 +33,8 @@ trait Process {
       opts.randomization,
       opts.zscore,
       opts.path,
-      opts.bands
+      opts.bands,
+      opts.withS3upload
     )
 
   def generate(
@@ -44,7 +46,8 @@ trait Process {
     randomization: Boolean,
     zscore: Boolean,
     path: String,
-    bands: Option[String]
+    bands: Option[String],
+    withS3upload: Boolean
   ): Unit = {
     val layerId = LayerId(layerName, zoom)
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
@@ -67,48 +70,58 @@ trait Process {
     val q = reader.query[SpatialKey, MultibandTile, TileLayerMetadata[SpatialKey]](layerId)
     polygons.zipWithIndex.foreach { case (p, i) =>
       val layer = q.where(Intersects(p)).result
-      val tileOpt = {
-        val l =
-          if (bandsSeq.nonEmpty) layer.withContext(_.mapValues(_.subsetBands(bandsSeq)))
-          else layer
 
-        if(l.count() > 0) Some(l.stitch)
-        else None
-      }
+      val l =
+        if (bandsSeq.nonEmpty) layer.withContext(_.mapValues(_.subsetBands(bandsSeq)))
+        else layer
 
-      tileOpt foreach { t =>
-        var tile = t
+      if (!l.isEmpty) {
+        var tile = l.stitch.crop(p.envelope)
         if (randomization) {
           if (Math.random() > 0.5) tile = tile.flipVertical
           if (Math.random() > 0.5) tile = tile.flipHorizontal
           tile = tile.rotate90(ThreadLocalRandom.current().nextInt(0, 5))
         }
+        val ndvi = Raster(NDVI(tile), tile.extent)
+        val mask = Raster(MASK(tile), tile.extent)
 
-        val res = tile.crop(p.envelope)
-        val ndvi = NDVI(res)
-
-        // how to gzip and to deliver on s3 (?)
         val toPath = s"$path/$discriminator/${tiffSize}x${tiffSize}"
         val to = s"$toPath/$i.tiff"
         val tondvi = s"$toPath/ndvi/$i.tiff"
+        val tomask = s"$toPath/mask/$i.tiff"
 
         new File(toPath).mkdirs()
         new File(s"$toPath/ndvi").mkdirs()
+        new File(s"$toPath/mask").mkdirs()
 
-        GeoTiff(res, md.crs).write(to)
-        GeoTiff(Raster(ndvi, res.extent), md.crs).write(tondvi)
-        HdfsUtils.copyPath(new Path(s"file://$to"), new Path(s"hdfs:///keras/${to.split("/").last}"), sc.hadoopConfiguration)
-        HdfsUtils.deletePath(new Path(s"file://$to"), sc.hadoopConfiguration)
-        HdfsUtils.copyPath(new Path(s"file://$tondvi"), new Path(s"hdfs:///keras/${tondvi.split("/").last}"), sc.hadoopConfiguration)
-        HdfsUtils.deletePath(new Path(s"file://$tondvi"), sc.hadoopConfiguration)
+        GeoTiff(tile, md.crs).write(to)
+        GeoTiff(ndvi, md.crs).write(tondvi)
+        GeoTiff(mask, md.crs).write(tomask)
+
+        if(withS3upload) {
+          HdfsUtils.copyPath(s"file://$to", s"hdfs:///keras/${to.split("/").last}", sc.hadoopConfiguration)
+          HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
+          HdfsUtils.copyPath(s"file://$tondvi", s"hdfs:///keras/${tondvi.split("/").last}", sc.hadoopConfiguration)
+          HdfsUtils.deletePath(s"file://$tondvi", sc.hadoopConfiguration)
+        }
 
         if (zscore) {
-          val to = s"$path/$i-z.tiff"
-          GeoTiff(res.zscore, md.crs).write(to)
-          HdfsUtils.copyPath(new Path(s"file://$to"), new Path(s"hdfs:///geotrellis-test/keras/${to.split("/").last}"), sc.hadoopConfiguration)
-          HdfsUtils.deletePath(new Path(s"file://$to"), sc.hadoopConfiguration)
+          val to = s"$toPath/$i-z.tiff"
+          GeoTiff(tile.zscore, md.crs).write(to)
+
+          if(withS3upload) {
+            HdfsUtils.copyPath(s"file://$to", s"hdfs:///geotrellis-test/keras/${to.split("/").last}", sc.hadoopConfiguration)
+            HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
+          }
         }
       }
+    }
+
+    if(withS3upload) {
+      HdfsUtils.copyPath("hdfs:///geotrellis-test/keras/", s"file://$path/gt-keras", sc.hadoopConfiguration)
+      ZipUtil.pack(new File(s"$path/$discriminator"), new File(s"$path/$discriminator.zip"))
+      HdfsUtils.deletePath(s"file://$path/gt-keras", sc.hadoopConfiguration)
+      HdfsUtils.copyPath(s"file://$path/gt-keras.zip", "s3://geotrellis-test/keras/gt-keras.zip", sc.hadoopConfiguration)
     }
   }
 }

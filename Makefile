@@ -135,7 +135,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,69,\
 --randomization,false,\
 --zscore,false,\
---path,"/tmp"\
+--path,"/mnt1"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-test-6000: ${GENERATORS_ASSEMBLY}
@@ -160,7 +160,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,69,\
 --randomization,false,\
 --zscore,false,\
---path,"/tmp"\
+--path,"/mnt1"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-800: ${GENERATORS_ASSEMBLY}
@@ -184,7 +184,82 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"/tmp"\
+--path,"/mnt1"\
+] | cut -f2 | tee last-step-id.txt
+
+generate-test-800: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.kryoserializer.buffer.max=2047mb,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
+--discriminator,"test",\
+--zoom,0,\
+--tiffSize,800,\
+--amount,12500,\
+--randomization,true,\
+--zscore,true,\
+--path,"/mnt1"\
+] | cut -f2 | tee last-step-id.txt
+
+generate-validation-800: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.kryoserializer.buffer.max=2047mb,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
+--discriminator,"validation",\
+--zoom,0,\
+--tiffSize,800,\
+--amount,12500,\
+--randomization,true,\
+--zscore,true,\
+--path,"/mnt1"\
+] | cut -f2 | tee last-step-id.txt
+
+generate-training-800: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.kryoserializer.buffer.max=2047mb,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
+--discriminator,"training",\
+--zoom,0,\
+--tiffSize,800,\
+--amount,12500,\
+--randomization,true,\
+--zscore,true,\
+--path,"/mnt1"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-256: ${GENERATORS_ASSEMBLY}
@@ -208,7 +283,83 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"/tmp"\
+--path,"/mnt1"\
+] | cut -f2 | tee last-step-id.txt
+
+generate-test-256: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.kryoserializer.buffer.max=2047mb,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
+--discriminator,"test",\
+--zoom,0,\
+--tiffSize,256,\
+--amount,50000,\
+--randomization,true,\
+--zscore,true,\
+--path,"/mnt1"\
+] | cut -f2 | tee last-step-id.txt
+
+generate-validation-256: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.kryoserializer.buffer.max=2047mb,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
+--discriminator,"validation",\
+--zoom,0,\
+--tiffSize,256,\
+--amount,50000,\
+--randomization,true,\
+--zscore,true,\
+--path,"/mnt1"\
+] | cut -f2 | tee last-step-id.txt
+
+generate-training-256: ${GENERATORS_ASSEMBLY}
+	aws emr add-steps --output text --cluster-id ${CLUSTER_ID} \
+--steps Type=CUSTOM_JAR,Name="Ingest Keras",Jar=command-runner.jar,Args=[\
+spark-submit,--master,yarn-cluster,\
+--class,com.azavea.keras.Main,\
+--driver-memory,${DRIVER_MEMORY},\
+--driver-cores,${DRIVER_CORES},\
+--executor-memory,${EXECUTOR_MEMORY},\
+--executor-cores,${EXECUTOR_CORES},\
+--conf,spark.dynamicAllocation.enabled=true,\
+--conf,spark.yarn.executor.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.yarn.driver.memoryOverhead=${YARN_OVERHEAD},\
+--conf,spark.kryoserializer.buffer.max=2047mb,\
+${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
+--layerName,"keras-raw",\
+--catalogPath,"/user/hadoop/keras-ingest/",\
+--discriminator,"training",\
+--zoom,0,\
+--tiffSize,256,\
+--amount,50000,\
+--randomization,true,\
+--zscore,true,\
+--path,"/mnt1",\
+--withS3upload,true\
 ] | cut -f2 | tee last-step-id.txt
 
 run-server: ${SERVER_ASSEMBLY}
