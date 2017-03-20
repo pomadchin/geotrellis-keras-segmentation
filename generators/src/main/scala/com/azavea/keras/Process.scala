@@ -90,29 +90,26 @@ trait Process {
         val tondvi = s"$toPath/ndvi/$i.tiff"
         val tomask = s"$toPath/mask/$i.tiff"
 
-        new File(toPath).mkdirs()
-        new File(s"$toPath/ndvi").mkdirs()
-        new File(s"$toPath/mask").mkdirs()
+        if(new File(s"$toPath/ndvi").mkdirs()) println(s"$toPath/ndvi is created") else println(s"$toPath/ndvi is not created")
+        if(new File(s"$toPath/mask").mkdirs()) println(s"$toPath/mask is created") else println(s"$toPath/mask is not created")
 
         GeoTiff(tile, md.crs).write(to)
         GeoTiff(ndvi, md.crs).write(tondvi)
         GeoTiff(mask, md.crs).write(tomask)
 
-        if(withS3upload) {
-          HdfsUtils.copyPath(s"file://$to", s"hdfs:///keras/${to.split("/").last}", sc.hadoopConfiguration)
-          HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
-          HdfsUtils.copyPath(s"file://$tondvi", s"hdfs:///keras/${tondvi.split("/").last}", sc.hadoopConfiguration)
-          HdfsUtils.deletePath(s"file://$tondvi", sc.hadoopConfiguration)
-        }
+        HdfsUtils.copyPath(s"file://$to", s"hdfs:///keras/${to.split("/").last}", sc.hadoopConfiguration)
+        HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
+        HdfsUtils.copyPath(s"file://$tondvi", s"hdfs:///keras/${tondvi.split("/").last}", sc.hadoopConfiguration)
+        HdfsUtils.deletePath(s"file://$tondvi", sc.hadoopConfiguration)
+        HdfsUtils.copyPath(s"file://$tomask", s"hdfs:///keras/${tomask.split("/").last}", sc.hadoopConfiguration)
+        HdfsUtils.deletePath(s"file://$tomask", sc.hadoopConfiguration)
 
         if (zscore) {
           val to = s"$toPath/$i-z.tiff"
           GeoTiff(tile.zscore, md.crs).write(to)
 
-          if(withS3upload) {
-            HdfsUtils.copyPath(s"file://$to", s"hdfs:///geotrellis-test/keras/${to.split("/").last}", sc.hadoopConfiguration)
-            HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
-          }
+          HdfsUtils.copyPath(s"file://$to", s"hdfs:///geotrellis-test/keras/${to.split("/").last}", sc.hadoopConfiguration)
+          HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
         }
       }
     }

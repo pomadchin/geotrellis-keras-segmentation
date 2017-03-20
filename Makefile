@@ -135,7 +135,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,69,\
 --randomization,false,\
 --zscore,false,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-test-6000: ${GENERATORS_ASSEMBLY}
@@ -160,7 +160,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,69,\
 --randomization,false,\
 --zscore,false,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-800: ${GENERATORS_ASSEMBLY}
@@ -184,7 +184,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-test-800: ${GENERATORS_ASSEMBLY}
@@ -209,7 +209,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-validation-800: ${GENERATORS_ASSEMBLY}
@@ -234,7 +234,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-training-800: ${GENERATORS_ASSEMBLY}
@@ -259,7 +259,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-256: ${GENERATORS_ASSEMBLY}
@@ -283,7 +283,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-test-256: ${GENERATORS_ASSEMBLY}
@@ -308,7 +308,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-validation-256: ${GENERATORS_ASSEMBLY}
@@ -333,7 +333,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1"\
+--path,"/tmp"\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-training-256: ${GENERATORS_ASSEMBLY}
@@ -358,7 +358,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"/mnt1",\
+--path,"/tmp",\
 --withS3upload,true\
 ] | cut -f2 | tee last-step-id.txt
 
