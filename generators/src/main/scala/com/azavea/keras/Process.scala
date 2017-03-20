@@ -97,26 +97,26 @@ trait Process {
         GeoTiff(ndvi, md.crs).write(tondvi)
         GeoTiff(mask, md.crs).write(tomask)
 
-        HdfsUtils.copyPath(s"file://$to", s"hdfs:///keras/${to.split("/").last}", sc.hadoopConfiguration)
+        HdfsUtils.copyPath(s"file://$to", s"hdfs:///geotrellis-test/keras/$discriminator/${tiffSize}x${tiffSize}/${to.split("/").last}", sc.hadoopConfiguration)
         HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
-        HdfsUtils.copyPath(s"file://$tondvi", s"hdfs:///keras/${tondvi.split("/").last}", sc.hadoopConfiguration)
+        HdfsUtils.copyPath(s"file://$tondvi", s"hdfs:///geotrellis-test/keras/$discriminator/${tiffSize}x${tiffSize}/ndvi/${tondvi.split("/").last}", sc.hadoopConfiguration)
         HdfsUtils.deletePath(s"file://$tondvi", sc.hadoopConfiguration)
-        HdfsUtils.copyPath(s"file://$tomask", s"hdfs:///keras/${tomask.split("/").last}", sc.hadoopConfiguration)
+        HdfsUtils.copyPath(s"file://$tomask", s"hdfs:///geotrellis-test/keras/$discriminator/${tiffSize}x${tiffSize}/mask/${tomask.split("/").last}", sc.hadoopConfiguration)
         HdfsUtils.deletePath(s"file://$tomask", sc.hadoopConfiguration)
 
         if (zscore) {
-          val to = s"$toPath/$i-z.tiff"
-          GeoTiff(tile.zscore, md.crs).write(to)
+          val toz = s"$toPath/$i-z.tiff"
+          GeoTiff(tile.zscore, md.crs).write(toz)
 
-          HdfsUtils.copyPath(s"file://$to", s"hdfs:///geotrellis-test/keras/${to.split("/").last}", sc.hadoopConfiguration)
-          HdfsUtils.deletePath(s"file://$to", sc.hadoopConfiguration)
+          HdfsUtils.copyPath(s"file://$toz", s"hdfs:///geotrellis-test/keras/$discriminator/${tiffSize}x${tiffSize}/${toz.split("/").last}", sc.hadoopConfiguration)
+          HdfsUtils.deletePath(s"file://$toz", sc.hadoopConfiguration)
         }
       }
     }
 
     if(withS3upload) {
       HdfsUtils.copyPath("hdfs:///geotrellis-test/keras/", s"file://$path/gt-keras", sc.hadoopConfiguration)
-      ZipUtil.pack(new File(s"$path/$discriminator"), new File(s"$path/$discriminator.zip"))
+      ZipUtil.pack(new File(s"file://$path/gt-keras"), new File(s"$path/gt-keras.zip"))
       HdfsUtils.deletePath(s"file://$path/gt-keras", sc.hadoopConfiguration)
       HdfsUtils.copyPath(s"file://$path/gt-keras.zip", "s3://geotrellis-test/keras/gt-keras.zip", sc.hadoopConfiguration)
     }
