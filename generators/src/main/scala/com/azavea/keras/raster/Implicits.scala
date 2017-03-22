@@ -1,15 +1,38 @@
 package com.azavea.keras.raster
 
 import geotrellis.raster._
+import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
+import geotrellis.raster.io.geotiff.GeoTiff
 import geotrellis.vector.Extent
+import geotrellis.spark.io.hadoop._
 
+import org.apache.hadoop.fs.FileSystem
+import org.apache.spark.SparkContext
 import spire.syntax.cfor._
 
+import java.io.DataOutputStream
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
 object Implicits extends Implicits
 
 trait Implicits {
+  implicit class withGeoTiffWriteMethods[T <: CellGrid](that: GeoTiff[T]) {
+    def writeHdfs(path: String)(implicit sc: SparkContext): Unit = {
+      val fs = FileSystem.get(sc.hadoopConfiguration)
+      val os = fs.create(path)
+      try {
+        val dos = new DataOutputStream(os)
+        try {
+          new GeoTiffWriter(that, dos).write()
+        } finally {
+          dos.close
+        }
+      } finally {
+        os.close
+      }
+    }
+  }
+
   implicit class withRndExtentFunctions(that: Extent) {
     def randomSquare(height: Double, width: Double) = {
       val newXMin = {
@@ -27,7 +50,7 @@ trait Implicits {
     }
   }
 
-  implicit class withTileSpaceFunctions(val that: Tile) extends SpaceFunctions[Tile]{
+  implicit class withTileSpaceFunctions(val that: Tile) extends SpaceFunctions[Tile] {
     def rotate90(n: Int = 1): Tile = {
       val (rows, cols) = that.rows -> that.cols
       if (n % 4 == 0) that
