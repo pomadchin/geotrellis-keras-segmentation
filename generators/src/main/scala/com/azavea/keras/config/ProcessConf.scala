@@ -13,7 +13,8 @@ object ProcessConf {
     path: String = "/tmp",
     bands: Option[String] = None,
     withS3upload: Boolean = false,
-    backend: String = "hadoop"
+    backend: String = "hadoop",
+    withGzip: Boolean = false
   ) {
     def isHadoop = backend == "hadoop"
     def isS3 = backend == "s3"
@@ -47,8 +48,10 @@ object ProcessConf {
                |        bands is a String option
                |  --withS3upload <value>
                |        withS3upload is a non-empty Boolean option [default: false]
+               |  --withGzip <value>
+               |        withGzip is a non-empty Boolean option [default: false]
                |  --backend <value>
-               |        bckend is a non-empty String option [default: hadoop] [options: file, hadoop, s3]
+               |        backend is a non-empty String option [default: hadoop] [options: file, hadoop, s3]
                |  --help
                |        prints this usage text
              """.stripMargin
@@ -84,6 +87,8 @@ object ProcessConf {
         nextOption(opts.copy(bands = Some(value)), tail)
       case "--withS3upload" :: value :: tail =>
         nextOption(opts.copy(withS3upload = value.toBoolean), tail)
+      case "--withGzip" :: value :: tail =>
+        nextOption(opts.copy(withGzip = value.toBoolean), tail)
       case "--backend" :: value :: tail => value match {
         case "file" | "hadoop" | "s3" => nextOption (opts.copy (backend = value), tail)
         case _ => {

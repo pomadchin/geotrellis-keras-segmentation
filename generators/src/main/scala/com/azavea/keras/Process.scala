@@ -11,43 +11,15 @@ import geotrellis.spark.io.hadoop._
 import geotrellis.vector._
 import geotrellis.vector.io._
 
-import org.zeroturnaround.zip.ZipUtil
 import org.apache.spark.SparkContext
 import spray.json.DefaultJsonProtocol._
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.hadoop.io.IOUtils
-import org.apache.hadoop.io.compress.CompressionCodecFactory
 
-import java.io.File
-import java.net.URI
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
 trait Process {
   implicit val sc: SparkContext
   val attributeStore: AttributeStore
   val reader: FilteringLayerReader[LayerId]
-
-  // gzips only one file, mr reqiured to gzip a dir
-  def gzip(uri: String) = {
-    val conf = sc.hadoopConfiguration
-    val fs = FileSystem.get(URI.create(uri), conf)
-    val inputPath = new Path(uri)
-
-    val factory = new CompressionCodecFactory(conf)
-    // the correct codec will be discovered by the extension of the file
-    val outputUri = s"$uri.gz"
-    val outputPath = new Path(outputUri)
-    val codec = factory.getCodec(outputPath)
-
-    if (codec == null) {
-      System.err.println("No codec found for " + uri)
-      System.exit(1)
-    }
-
-    val is = fs.open(inputPath)
-    val out = codec.createOutputStream(fs.create(outputPath))
-    IOUtils.copyBytes(is, out, conf)
-  }
 
   def generate(opts: ProcessConf.Options): Unit =
     generate(
@@ -60,7 +32,8 @@ trait Process {
       opts.zscore,
       opts.path,
       opts.bands,
-      opts.withS3upload
+      opts.withS3upload,
+      opts.withGzip
     )
 
   def generate(
@@ -73,7 +46,8 @@ trait Process {
     zscore: Boolean,
     path: String,
     bands: Option[String],
-    withS3upload: Boolean
+    withS3upload: Boolean,
+    withGzip: Boolean
   ): Unit = {
     val layerId = LayerId(layerName, zoom)
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
@@ -87,7 +61,7 @@ trait Process {
 
     val polygons =
       (1 to amount)
-        .map { _ => layerExtent.randomSquare(md.cellSize.height * (tiffSize - 1), md.cellSize.width * (tiffSize - 1)) }
+        .map { _ => layerExtent.random(md.cellSize.height * (tiffSize - 1), md.cellSize.width * (tiffSize - 1)) }
         .distinct
         .map(_.toPolygon)
 
@@ -116,22 +90,17 @@ trait Process {
         val tondvi = s"$toPath/ndvi/$i.tiff"
         val tomask = s"$toPath/mask/$i.tiff"
 
-        GeoTiff(tile, md.crs).writeHdfs(to)
-        GeoTiff(ndvi, md.crs).writeHdfs(tondvi)
-        GeoTiff(mask, md.crs).writeHdfs(tomask)
+        GeoTiff(tile, md.crs).writeHdfs(to, withGzip)
+        GeoTiff(ndvi, md.crs).writeHdfs(tondvi, withGzip)
+        GeoTiff(mask, md.crs).writeHdfs(tomask, withGzip)
 
         if (zscore) {
           val toz = s"$toPath/$i-z.tiff"
-          GeoTiff(tile.zscore, md.crs).writeHdfs(toz)
+          GeoTiff(tile.zscore, md.crs).writeHdfs(toz, withGzip)
         }
       }
     }
 
-    if(withS3upload) {
-      HdfsUtils.copyPath(path, s"file:///tmp/gt-keras", sc.hadoopConfiguration)
-      ZipUtil.pack(new File(s"/tmp/gt-keras"), new File(s"/tmp/gt-keras/gt-keras.zip"))
-      HdfsUtils.deletePath(s"file:///tmp/gt-keras", sc.hadoopConfiguration)
-      HdfsUtils.copyPath(s"file:///tmp/gt-keras.zip", "s3://geotrellis-test/keras/gt-keras.zip", sc.hadoopConfiguration)
-    }
+    if(withS3upload) HdfsUtils.copyPath(path, "s3://geotrellis-test/keras/gz", sc.hadoopConfiguration)
   }
 }

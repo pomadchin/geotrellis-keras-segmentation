@@ -9,6 +9,7 @@ import geotrellis.spark.io.hadoop._
 import org.apache.hadoop.fs.FileSystem
 import org.apache.spark.SparkContext
 import spire.syntax.cfor._
+import org.apache.hadoop.io.compress.CompressionCodecFactory
 
 import java.io.DataOutputStream
 import scala.concurrent.forkjoin.ThreadLocalRandom
@@ -17,9 +18,29 @@ object Implicits extends Implicits
 
 trait Implicits {
   implicit class withGeoTiffWriteMethods[T <: CellGrid](that: GeoTiff[T]) {
-    def writeHdfs(path: String)(implicit sc: SparkContext): Unit = {
-      val fs = FileSystem.get(sc.hadoopConfiguration)
-      val os = fs.create(path)
+    def writeHdfs(path: String, gzip: Boolean = false)(implicit sc: SparkContext): Unit = {
+      val conf = sc.hadoopConfiguration
+      val fs = FileSystem.get(conf)
+
+      val os =
+        if (!gzip) {
+          fs.create(path)
+        } else {
+          val factory = new CompressionCodecFactory(conf)
+          val outputUri = {
+            val arr = path.split("\\.")
+            (arr.init :+ "gz").mkString(".")
+          }
+
+          val codec = factory.getCodec(outputUri)
+
+          if (codec == null) {
+            println(s"No codec found for $outputUri, writing without compression.")
+            fs.create(path)
+          } else {
+            codec.createOutputStream(fs.create(outputUri))
+          }
+        }
       try {
         val dos = new DataOutputStream(os)
         try {
@@ -34,7 +55,7 @@ trait Implicits {
   }
 
   implicit class withRndExtentFunctions(that: Extent) {
-    def randomSquare(height: Double, width: Double) = {
+    def random(height: Double, width: Double) = {
       val newXMin = {
         if(that.xmin == that.xmax - width) that.xmin
         else ThreadLocalRandom.current().nextDouble(that.xmin, that.xmax - width)

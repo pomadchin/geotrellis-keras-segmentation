@@ -160,7 +160,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,69,\
 --randomization,true,\
 --zscore,true,\
---path,"/tmp"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-800: ${GENERATORS_ASSEMBLY}
@@ -184,7 +185,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-test-800: ${GENERATORS_ASSEMBLY}
@@ -209,7 +211,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-validation-800: ${GENERATORS_ASSEMBLY}
@@ -234,7 +237,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,false,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-training-800: ${GENERATORS_ASSEMBLY}
@@ -259,7 +263,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,12500,\
 --randomization,true,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-256: ${GENERATORS_ASSEMBLY}
@@ -283,7 +288,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-test-256: ${GENERATORS_ASSEMBLY}
@@ -308,7 +314,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,true,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-validation-256: ${GENERATORS_ASSEMBLY}
@@ -333,7 +340,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --amount,50000,\
 --randomization,false,\
 --zscore,true,\
---path,"hdfs:///geotrellis-test/keras"\
+--path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true\
 ] | cut -f2 | tee last-step-id.txt
 
 generate-training-256: ${GENERATORS_ASSEMBLY}
@@ -359,6 +367,8 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
+--withGzip,true,\
+--withS3upload,true\
 ] | cut -f2 | tee last-step-id.txt
 
 run-server: ${SERVER_ASSEMBLY}
@@ -391,7 +401,8 @@ generate-local: ${GENERATORS_ASSEMBLY}
         --randomization true \
         --zscore true \
         --path "hdfs:///geotrellis-test/keras" \
-        --backend file
+        --backend file \
+        --withGzip false \
 
 local-webui-py3:
 	cd static; python -m http.server 8000
