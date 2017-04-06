@@ -63,15 +63,16 @@ object Ingest extends {
       val etlConf = EtlConf(args)
 
       etlConf foreach { conf =>
-        /* parse command line arguments */
+        /** Parse command line arguments */
         val etl = Etl(conf, Etl.defaultModules)
 
         val inputPosition = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty => path }.zipWithIndex.toMap
 
+        /** Path in RDD requires kryo serialization to be enabled, should be required to use */
         val input = conf.input.backend.path.toString.split(",").collect { case path if path.nonEmpty =>
           HadoopGeoTiffRDD.multiband[ProjectedExtent, (Path, ProjectedExtent)](
             path,
-            (path, key) => path -> key,
+            (uri, key) => new Path(uri.toString) -> key,
             HadoopGeoTiffRDD.Options(
               crs = conf.input.getCrs,
               maxTileSize = conf.input.maxTileSize,

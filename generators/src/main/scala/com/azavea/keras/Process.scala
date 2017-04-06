@@ -11,6 +11,7 @@ import geotrellis.spark.io.hadoop._
 import geotrellis.vector._
 import geotrellis.vector.io._
 
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import spray.json.DefaultJsonProtocol._
 
@@ -50,6 +51,7 @@ trait Process {
     withGzip: Boolean
   ): Unit = {
     val layerId = LayerId(layerName, zoom)
+    val conf = sc.hadoopConfiguration
     val md = attributeStore.readMetadata[TileLayerMetadata[SpatialKey]](layerId)
     val layerExtent = discriminator match {
       case "training" | "validation" | "test" =>
@@ -86,17 +88,17 @@ trait Process {
         val mask = Raster(MASK(tile), tile.extent)
 
         val toPath = s"$path/$discriminator/${tiffSize}x${tiffSize}"
-        val to = s"$toPath/$i.tiff"
-        val tondvi = s"$toPath/ndvi/$i.tiff"
-        val tomask = s"$toPath/mask/$i.tiff"
+        val to = if(!withGzip) s"$toPath/$i.tiff" else s"$toPath/$i.tiff.gz"
+        val tondvi = if(!withGzip) s"$toPath/ndvi/$i.tiff" else s"$toPath/ndvi/$i.tiff.gz"
+        val tomask = if(!withGzip) s"$toPath/mask/$i.tiff" else s"$toPath/mask/$i.tiff.gz"
 
-        GeoTiff(tile, md.crs).writeHdfs(to, withGzip)
-        GeoTiff(ndvi, md.crs).writeHdfs(tondvi, withGzip)
-        GeoTiff(mask, md.crs).writeHdfs(tomask, withGzip)
+        GeoTiff(tile, md.crs).write(new Path(to), conf)
+        GeoTiff(ndvi, md.crs).write(new Path(tondvi), conf)
+        GeoTiff(mask, md.crs).write(new Path(tomask), conf)
 
         if (zscore) {
-          val toz = s"$toPath/$i-z.tiff"
-          GeoTiff(tile.zscore, md.crs).writeHdfs(toz, withGzip)
+          val toz = if(!withGzip) s"$toPath/$i-z.tiff" else s"$toPath/$i-z.tiff.gz"
+          GeoTiff(tile.zscore, md.crs).write(new Path(toz), conf)
         }
       }
     }

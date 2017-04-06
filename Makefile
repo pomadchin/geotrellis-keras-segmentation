@@ -182,7 +182,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --catalogPath,"/user/hadoop/keras-ingest/",\
 --zoom,0,\
 --tiffSize,800,\
---amount,12500,\
+--amount,2500,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -208,7 +208,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --discriminator,"test",\
 --zoom,0,\
 --tiffSize,800,\
---amount,12500,\
+--amount,2500,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -234,7 +234,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --discriminator,"validation",\
 --zoom,0,\
 --tiffSize,800,\
---amount,12500,\
+--amount,2500,\
 --randomization,false,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -260,7 +260,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --discriminator,"training",\
 --zoom,0,\
 --tiffSize,800,\
---amount,12500,\
+--amount,2500,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -285,7 +285,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --catalogPath,"/user/hadoop/keras-ingest/",\
 --zoom,0,\
 --tiffSize,256,\
---amount,50000,\
+--amount,5000,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -311,7 +311,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --discriminator,"test",\
 --zoom,0,\
 --tiffSize,256,\
---amount,50000,\
+--amount,5000,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -337,7 +337,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --discriminator,"validation",\
 --zoom,0,\
 --tiffSize,256,\
---amount,50000,\
+--amount,5000,\
 --randomization,false,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\
@@ -363,7 +363,7 @@ ${S3_URI}/keras-generators-assembly-0.1.0-SNAPSHOT.jar,\
 --discriminator,"training",\
 --zoom,0,\
 --tiffSize,256,\
---amount,50000,\
+--amount,5000,\
 --randomization,true,\
 --zscore,true,\
 --path,"hdfs:///geotrellis-test/keras",\

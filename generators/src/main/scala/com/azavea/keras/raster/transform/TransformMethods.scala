@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2014 Azavea.
+ * Copyright 2016 Azavea
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-object Version {
-  val geotrellis  = "1.1.0-RC3"
-  val scala       = "2.11.8"
-  val akkaActor   = "2.4.16"
-  val akkaHttp    = "10.0.3"
-  val scalaTest   = "3.0.1"
-  lazy val hadoop = Environment.hadoopVersion
-  lazy val spark  = Environment.sparkVersion
+package com.azavea.keras.raster.transform
+
+import geotrellis.raster.CellGrid
+import geotrellis.util.MethodExtensions
+
+trait TransformMethods[T <: CellGrid] extends MethodExtensions[T] {
+  def rotate90(n: Int): T
+  def rotate180: T = rotate90(2)
+  def rotate270: T = rotate90(3)
+  def rotate360: T = rotate90(4)
+  def flipVertical: T
+  def flipHorizontal: T
+  def zscore: T
 }
